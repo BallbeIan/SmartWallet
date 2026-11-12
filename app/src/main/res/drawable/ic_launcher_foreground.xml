@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Card peeking out behind the wallet -->
+    <path android:fillColor="#FF1B9C6C"
+        android:pathData="M36,30h36a4,4 0,0 1,4 4v6H32v-6a4,4 0,0 1,4 -4z" />
+    <!-- Wallet body -->
+    <path android:fillColor="#FF24D08F"
+        android:pathData="M34,38h40a6,6 0,0 1,6 6v26a6,6 0,0 1,-6 6H34a6,6 0,0 1,-6 -6V44a6,6 0,0 1,6 -6z" />
+    <!-- Clasp -->
+    <path android:fillColor="#FF0E1425"
+        android:pathData="M62,52h20v14H62a7,7 0,0 1,0 -14z" />
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M67,56.5a2.5,2.5 0,1 0,0.01 0z" />
+</vector>

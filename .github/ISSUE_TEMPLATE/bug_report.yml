@@ -1,0 +1,21 @@
+name: Bug or device report
+description: Something does not work, or you tried SmartWallet on a new phone
+body:
+  - type: markdown
+    attributes:
+      value: |
+        SmartWallet has only been tested on one Samsung foldable so far. Reports from other phones are very valuable, **even if everything works**.
+  - type: input
+    id: device
+    attributes:
+      label: Phone model and Android version
+      placeholder: "Google Pixel 8, Android 15"
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include steps to reproduce, what you expected, and what you saw instead. Please do not paste real financial data.
+    validations:
+      required: true
