@@ -1,8 +1,16 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
+}
+
+// Release signing: put the key's details in keystore.properties (git-ignored). Without that file the release build is
+// signed with the debug key, so it still installs for local testing but is not suitable for publishing.
+val keystoreProps = Properties().apply {
+    rootProject.file("keystore.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
 }
 
 android {
@@ -17,6 +25,17 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        if (keystoreProps.isNotEmpty()) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         // A second, separate install (own database) used to take README screenshots without touching real data.
         create("demo") {
@@ -28,8 +47,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Debug-signed so it installs for local testing; add a real key before publishing.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
         }
     }
 

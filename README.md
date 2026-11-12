@@ -13,6 +13,10 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 ![No internet permission](https://img.shields.io/badge/internet-never%20requested-success)
 ![License: PolyForm Noncommercial](https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue)
 
+[![Download the latest APK](https://img.shields.io/github/v/release/BallbeIan/SmartWallet?label=download%20APK&logo=android&logoColor=white&color=3DDC84)](https://github.com/BallbeIan/SmartWallet/releases/latest)
+
+**[Download the latest APK](https://github.com/BallbeIan/SmartWallet/releases/latest)** and follow [Installing](#installing).
+
 <img src="docs/images/hero.png" alt="SmartWallet's home screen with the total balance, quick actions and budget, next to the History and Budgets screens" width="760">
 
 </div>
@@ -73,6 +77,14 @@ Choose the account you spend from, then decide what happens when a month is over
 - **What you see:** a transfer in History dated the last day of the month, and a *Carried over from October* entry on the 1st. The pair cancels out, so balances don't change, but the new month's net includes it.
 - **Always up to date:** the entries are calculated from your transactions, not saved once. Change a transaction in an earlier month and every later month-end entry is recalculated.
 
+## Installing
+
+1. On your phone, open the [latest release](https://github.com/BallbeIan/SmartWallet/releases/latest) and download `SmartWallet-<version>.apk`. Open it and allow your browser or file manager to install apps when Android asks.
+2. Open **SmartWallet**, add your first account with the **+** button, and start logging.
+3. *(Optional)* In Settings, switch on **Payment reminders** to get a notification before a scheduled payment is due.
+
+To check the download, compare its SHA-256 with the `.sha256` file on the release page. The APK is signed with the project's release key, whose certificate SHA-256 is `d0e9851f05844377b84f1f31efe98aca5c2f06b37a5cf9bec6415c276894bf30` (check it with `apksigner verify --print-certs`). Updates install over an existing install and keep your data.
+
 ## Requirements and compatibility
 
 - Android **8.0 (API 26) or newer**. Built against API 36.
@@ -125,6 +137,8 @@ export ANDROID_HOME=~/Android/Sdk
 ```
 
 Or open the folder in Android Studio and run it on a device.
+
+Release builds are signed with the key in `keystore.properties` (copy `keystore.properties.example`; the file and the key are git-ignored). Without it, `assembleRelease` falls back to the debug key, which is fine for local testing but not for publishing.
 
 ### Trying it with sample data
 
