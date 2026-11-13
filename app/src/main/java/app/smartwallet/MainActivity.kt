@@ -1,7 +1,7 @@
 package app.smartwallet
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
@@ -27,7 +27,20 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.smartwallet.ui.*
 
-class MainActivity : ComponentActivity() {
+// FragmentActivity (a ComponentActivity subclass) is what the biometric prompt needs.
+class MainActivity : FragmentActivity() {
+    override fun onStop() {
+        super.onStop()
+        AppLock.onStop()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        AppLock.onStart(this)
+        // Keep app contents out of the recent-apps thumbnail while a lock is set (Android 13+).
+        if (android.os.Build.VERSION.SDK_INT >= 33) setRecentsScreenshotEnabled(!AppLock.enabled(this))
+    }
+
     // Due scheduled payments are added whenever the app comes to the front, so nothing is missed overnight.
     override fun onResume() {
         super.onResume()
@@ -40,12 +53,14 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
         // Debug only: `adb shell am start ... --ez demo true` loads sample data without touching the screen.
         app.smartwallet.data.Money.load(this)
+        AppLock.onCreate(this)
         Reminders.schedule(this)
         if (BuildConfig.DEBUG && intent.getBooleanExtra("remind", false)) Reminders.runNow(this, force = true)
         if (BuildConfig.DEBUG && intent.getBooleanExtra("demo", false)) {
             androidx.lifecycle.ViewModelProvider(this)[WalletViewModel::class.java].loadDemoData()
         }
-        setContent { WalletTheme { Surface { WalletApp() } } }
+        // While locked, the app itself is not even composed, so nothing behind the lock screen can be read or tapped.
+        setContent { WalletTheme { Surface { if (AppLock.locked) LockScreen(this@MainActivity) else WalletApp() } } }
     }
 }
 

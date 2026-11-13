@@ -24,6 +24,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.fragment.app.FragmentActivity
+import app.smartwallet.AppLock
 import app.smartwallet.BuildConfig
 import app.smartwallet.Reminders
 import app.smartwallet.WalletViewModel
@@ -100,6 +105,15 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
     var rules by remember { mutableStateOf(MonthEnd.load(ctx)) }
     fun update(r: MonthEnd.Rules) { rules = r; MonthEnd.save(ctx, r); vm.monthEndChanged() }
 
+    val activity = ctx as FragmentActivity
+    var lockOn by remember { mutableStateOf(AppLock.enabled(ctx)) }
+    var bioOn by remember { mutableStateOf(AppLock.biometrics(ctx)) }
+    var timeoutMs by remember { mutableLongStateOf(AppLock.timeoutMs(ctx)) }
+    var settingPin by remember { mutableStateOf(false) }
+    var changingPin by remember { mutableStateOf(false) }
+    var disablingLock by remember { mutableStateOf(false) }
+    var pickingTimeout by remember { mutableStateOf(false) }
+    val timeoutLabel = { ms: Long -> when (ms) { 0L -> "Immediately"; 60_000L -> "After 1 minute"; else -> "After ${ms / 60_000} minutes" } }
     var pickingCurrency by remember { mutableStateOf(false) }
     var pickingLead by remember { mutableStateOf(false) }
     var pickingKeep by remember { mutableStateOf(false) }
@@ -129,7 +143,7 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
                             Switch(remindersOn, { on ->
                                 if (!on) { Reminders.setEnabled(ctx, false); remindersOn = false }
                                 else if (Reminders.hasPermission(ctx)) { Reminders.setEnabled(ctx, true); remindersOn = true }
-                                else askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                else { AppLock.ignoreNextStop(); askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS) }
                             })
                         })
                     Divider()
@@ -143,13 +157,34 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
                         trailing = { Switch(rules.enabled, { on -> update(rules.copy(enabled = on)); if (on && rules.spending == null) page = MONTH_END }) }) { page = MONTH_END }
                 }
 
+                GroupLabel("Security")
+                Group {
+                    Row(Icons.Filled.Lock, Green, "App lock", if (lockOn) "PIN${if (bioOn) " and biometrics" else ""}" else "Off",
+                        trailing = { Switch(lockOn, { on -> if (on) settingPin = true else disablingLock = true }) })
+                    if (lockOn) {
+                        Divider()
+                        Row(Icons.Filled.Pin, Blue, "Change PIN") { changingPin = true }
+                        Divider()
+                        val problem = biometricsProblem(activity)
+                        Row(Icons.Filled.Fingerprint, Teal, "Unlock with biometrics", if (problem == null) "Fingerprint or face" else problem,
+                            trailing = {
+                                Switch(bioOn, { on ->
+                                    if (!on) { AppLock.setBiometrics(ctx, false); bioOn = false }
+                                    else showBiometricPrompt(activity, "Confirm it's you") { AppLock.setBiometrics(ctx, true); bioOn = true }
+                                }, enabled = problem == null)
+                            })
+                        Divider()
+                        Row(Icons.Filled.Timer, Amber, "Lock", timeoutLabel(timeoutMs)) { pickingTimeout = true }
+                    }
+                }
+
                 GroupLabel("Data")
                 Group {
                     Row(Icons.Filled.Category, Teal, "Categories", "${categories.size} categories") { page = CATEGORIES }
                     Divider()
-                    Row(Icons.Filled.FileUpload, Blue, "Export CSV", "Save all transactions to a file") { export.launch("smartwallet-${LocalDate.now()}.csv") }
+                    Row(Icons.Filled.FileUpload, Blue, "Export CSV", "Save all transactions to a file") { run { AppLock.ignoreNextStop(); export.launch("smartwallet-${LocalDate.now()}.csv") } }
                     Divider()
-                    Row(Icons.Filled.FileDownload, Blue, "Import CSV", "date, account, category, amount, note, transfer_id") { import.launch(arrayOf("*/*")) }
+                    Row(Icons.Filled.FileDownload, Blue, "Import CSV", "date, account, category, amount, note, transfer_id") { run { AppLock.ignoreNextStop(); import.launch(arrayOf("*/*")) } }
                 }
 
                 if (BuildConfig.DEBUG) {
@@ -234,6 +269,24 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
             }
         }
     }
+    if (settingPin) PinDialog("Set a PIN", requireCurrent = false, onDismiss = { settingPin = false }) { _, new ->
+        AppLock.setPin(ctx, new); lockOn = true; settingPin = false
+    }
+    if (changingPin) PinDialog("Change PIN", requireCurrent = !AppLock.recovered, onDismiss = { changingPin = false }) { _, new ->
+        AppLock.setPin(ctx, new); changingPin = false
+    }
+    if (disablingLock) {
+        if (AppLock.recovered) ConfirmDialog("Turn off app lock?", "Anyone who opens SmartWallet will see your data.", "Turn off",
+            onConfirm = { AppLock.clear(ctx); lockOn = false; bioOn = false }, onDismiss = { disablingLock = false })
+        else PinDialog("Turn off app lock", requireCurrent = true, askNew = false, confirmText = "Turn off", onDismiss = { disablingLock = false }) { _, _ ->
+            AppLock.clear(ctx); lockOn = false; bioOn = false; disablingLock = false
+        }
+    }
+    if (pickingTimeout) WalletDialog("Lock", { pickingTimeout = false }) {
+        ChoiceGroup(listOf(0L, 60_000L, 300_000L, 900_000L), { it == timeoutMs }, timeoutLabel) { timeoutMs = it; AppLock.setTimeoutMs(ctx, it); pickingTimeout = false }
+        Text("How long SmartWallet can be in the background before it asks for your PIN again.", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     if (pickingLead) WalletDialog("Remind me", { pickingLead = false }) {
         ChoiceGroup(listOf(0, 1, 2, 3), { it == leadDays }, leadLabel) {
             leadDays = it; Reminders.setLeadDays(ctx, it); Reminders.runNow(ctx); pickingLead = false
@@ -249,5 +302,45 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
     deleting?.let { c ->
         ConfirmDialog("Delete ${c.name}?", "Its transactions stay but become uncategorized; its budget is removed.",
             onConfirm = { vm.deleteCategory(c) }, onDismiss = { deleting = null })
+    }
+}
+
+/** PIN entry for setting, changing or confirming. Digits only, 4 to 6 long. */
+@Composable
+private fun PinDialog(
+    title: String, requireCurrent: Boolean, askNew: Boolean = true, confirmText: String = "Save",
+    onDismiss: () -> Unit, onDone: (current: String, new: String) -> Unit,
+) {
+    val ctx = LocalContext.current
+    var current by remember { mutableStateOf("") }
+    var new by remember { mutableStateOf("") }
+    var again by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    fun digits(s: String) = s.filter { it.isDigit() }.take(6)
+
+    @Composable
+    fun Field(value: String, label: String, onChange: (String) -> Unit) = OutlinedTextField(
+        value, { onChange(digits(it)); error = null }, Modifier.fillMaxWidth(), label = { Text(label) }, singleLine = true,
+        visualTransformation = PasswordVisualTransformation(), shape = MaterialTheme.shapes.small, colors = fieldColors(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+    )
+
+    val ready = (!requireCurrent || current.length >= 4) && (!askNew || (new.length >= 4 && again.length >= 4))
+    WalletDialog(title, onDismiss, confirmText, confirmEnabled = ready, onConfirm = {
+        when {
+            requireCurrent && AppLock.verify(ctx, current) != AppLock.Result.OK ->
+                error = if (AppLock.waitMs(ctx) > 0) "Too many tries. Wait ${(AppLock.waitMs(ctx) + 999) / 1000}s" else "Current PIN is wrong"
+            askNew && new != again -> error = "The PINs don't match"
+            else -> onDone(current, new)
+        }
+    }) {
+        if (requireCurrent) Field(current, "Current PIN") { current = it }
+        if (askNew) {
+            Field(new, "New PIN (4 to 6 digits)") { new = it }
+            Field(again, "Repeat PIN") { again = it }
+            Text("There is no way to recover a forgotten PIN except your phone's screen lock, where the phone offers it.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        error?.let { Text(it, color = Expense, style = MaterialTheme.typography.bodyMedium) }
     }
 }

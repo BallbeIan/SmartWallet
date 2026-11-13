@@ -31,6 +31,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 - **Scheduled payments.** Add Netflix, rent or a salary once (weekly, monthly or yearly). Each occurrence lands in History on its due date, and a reminder can tell you a day or two before.
 - **Month end, your way.** Pick the account you spend from. When a month is over, leave the leftover in place, move it to another account, or cover an overspend from savings. Anything that stays is shown as a *Carried over* entry, and it is recalculated for every month whenever you edit the past.
 - **Private by design.** The app **never asks for the internet permission**. Your data lives in a local database on the phone, and there is no account, no analytics and no ads.
+- **App lock.** Optionally protect the app with a PIN and your fingerprint or face. It locks when you leave, hides its preview in the recent-apps list, and slows down guessing.
 - **Your currency.** Pick any currency; amounts are shown with its symbol and formatting.
 
 ## Screenshots
@@ -66,6 +67,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 | 🥧 **Reports** | Spending by category as a donut chart, plus income against expenses for the last six months. |
 | 🔁 **Scheduled** | Subscriptions and repeating payments. Pause one with a switch. Optional reminders at 09:00, from the same day up to three days ahead. |
 | 📅 **Month end** | Leftover and overspend rules for the account you spend from. Applies to all months, always. |
+| 🔒 **App lock** | A 4–6 digit PIN, optional biometrics, and a choice of when it locks again (immediately, 1, 5 or 15 minutes). A forgotten PIN can be reset with the phone's own screen lock (Android 11+). |
 | 📁 **CSV** | Export everything to a file, or import a bank statement; missing accounts and categories are created for you. |
 
 ## How Month end works
@@ -95,6 +97,7 @@ To check the download, compare its SHA-256 with the `.sha256` file on the releas
 | Permission | Why |
 |---|---|
 | Notifications *(optional)* | Payment reminders. Asked for only when you switch reminders on. |
+| Biometrics, fingerprint | Declared by AndroidX Biometric so the app lock can use your fingerprint or face. Optional, and only used if you switch it on. |
 | Wake lock, boot completed, foreground service, network state | Declared by AndroidX WorkManager so the daily check survives a reboot. SmartWallet does not use the network. |
 
 There is **no internet permission**. See the merged list with `aapt2 dump permissions app-debug.apk`.
@@ -114,7 +117,8 @@ There is **no internet permission**. See the merged list with `aapt2 dump permis
 - Amounts are stored as whole **cents**, so there are no rounding errors; only the display follows the chosen currency.
 - **Month end is derived data.** `computeMonthEnd` is a pure function from the real transactions to the entries that should exist; `reconcileMonthEnd` makes the database match it and writes nothing when it already does.
 - **Scheduled payments** become ordinary transactions on their due date, so budgets and reports pick them up with no special cases.
-- Libraries: Jetpack Compose (Material 3), Room, WorkManager. Nothing else.
+- **The PIN is never stored**, only a salted PBKDF2 hash. While the app is locked its screens are not composed at all, so nothing behind the lock screen can be read.
+- Libraries: Jetpack Compose (Material 3), Room, WorkManager and AndroidX Biometric. Nothing else.
 
 | Path | What it does |
 |---|---|
@@ -122,6 +126,7 @@ There is **no internet permission**. See the merged list with `aapt2 dump permis
 | `app/src/main/java/app/smartwallet/ui/` | One file per screen, the shared dialogs and the theme |
 | `WalletViewModel.kt` | App state, and the single place data is changed |
 | `Reminders.kt` | Reminder settings, scheduling and the daily worker |
+| `AppLock.kt` | PIN storage (salted PBKDF2 hash only), lock state and timing |
 
 ## Building from source
 
