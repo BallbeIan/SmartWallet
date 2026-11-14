@@ -43,12 +43,12 @@ internal val TextKeyboard = KeyboardOptions(capitalization = KeyboardCapitalizat
 val ExpenseRed: Color get() = Expense
 val IncomeGreen: Color get() = Green
 
-/** Page colours inside a sheet: iOS shows white (or dark grey) cards on a light grey (or dark) sheet. */
+/** Page colours inside a sheet: white (or dark grey) cards on a light grey (or dark) sheet. */
 val SheetBg: Color get() = if (AppTheme.isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
 val SheetCard: Color get() = if (AppTheme.isDark) Color(0xFF2C2C2E) else Color.White
 
 /**
- * The one form shell, shaped like an iOS sheet: a grabber, a bar with Cancel on the left, the title in the middle and
+ * The one form shell, shaped like a bottom sheet: a grabber, a bar with Cancel on the left, the title in the middle and
  * the confirm action on the right, then the form. [leading] (usually Delete) sits at the bottom as its own row.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -167,7 +167,7 @@ internal fun AmountField(value: String, onChange: (String) -> Unit, color: Color
 
 internal fun currencySymbol(): String = Money.symbol()
 
-/** An iOS-style alert: centred title and message, two buttons split by hairlines. */
+/** A centred alert: centred title and message, two buttons split by hairlines. */
 @Composable
 fun ConfirmDialog(title: String, body: String, confirm: String = "Delete", onConfirm: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false)) {
@@ -254,7 +254,7 @@ fun TransactionDialog(
         leading = onDelete?.let { { TextButton({ onDelete(); onDismiss() }) { Text("Delete", color = Expense) } } },
     ) {
         if (initial == null) {
-            // iOS segmented control: a grey track with a white thumb under the chosen option.
+            // Segmented control: a grey track with a white thumb under the chosen option.
             Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(3.dp)) {
                 kinds.forEachIndexed { i, l ->
                     val on = kind == i

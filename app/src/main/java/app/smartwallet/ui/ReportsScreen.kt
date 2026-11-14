@@ -56,7 +56,7 @@ fun ReportsScreen(vm: WalletViewModel) {
                         drawArc(track, 0f, 360f, false, Offset(stroke / 2, stroke / 2), arcSize, style = Stroke(stroke))
                         var start = -90f
                         byCat.forEach { (id, v) ->
-                            // A hair of gap between slices, like Apple's ring charts.
+                            // A hair of gap between slices so they read as separate.
                             val sweep = 360f * v / total
                             drawArc(colorOf(id), start, (sweep - 1.5f).coerceAtLeast(0.5f), false, Offset(stroke / 2, stroke / 2), arcSize, style = Stroke(stroke, cap = StrokeCap.Butt))
                             start += sweep

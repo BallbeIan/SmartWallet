@@ -28,7 +28,7 @@ const val TAB_BUDGETS = 2
 const val TAB_REPORTS = 3
 const val TAB_ACCOUNTS = 4
 
-/** A round coloured button with its label underneath, like the actions in Apple Wallet. */
+/** A round coloured button with its label underneath. */
 @Composable
 private fun QuickAction(label: String, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
     Column(modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {

@@ -39,7 +39,7 @@ object AppTheme {
     }
 }
 
-// Apple's system colours. These read the theme state, so they update live when the theme changes.
+// The Clarity colours: bright, system-style hues. These read the theme state, so they update live when the theme changes.
 val Green: Color get() = if (AppTheme.isDark) Color(0xFF30D158) else Color(0xFF2AAE4A)
 /** Money coming in, as text: a deeper green on white so it stays readable. */
 val IncomeText: Color get() = if (AppTheme.isDark) Color(0xFF30D158) else Color(0xFF248A3D)
@@ -77,7 +77,7 @@ private val LightScheme = lightColorScheme(
     error = Color(0xFFFF3B30), onError = Color.White,
 )
 
-// Inter is the closest open font to Apple's San Francisco, and it is bundled so the app needs no internet to show it.
+// Inter is an open font made for screens. It is bundled, so the app needs no internet to show it.
 internal val Inter = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
     Font(R.font.inter_medium, FontWeight.Medium),
@@ -88,7 +88,7 @@ internal val Inter = FontFamily(
 private fun style(size: Int, weight: FontWeight, spacing: Double = 0.0, lineHeight: Int = (size * 1.25).toInt()) =
     TextStyle(fontFamily = Inter, fontWeight = weight, fontSize = size.sp, letterSpacing = spacing.sp, lineHeight = lineHeight.sp)
 
-// Sizes follow Apple's text styles: Large Title 34, Title 2 22, Headline 17, Body 17, Subheadline 15, Footnote 13, Caption 12.
+// The type scale: Large Title 34, Title 2 22, Headline 17, Body 17, Subheadline 15, Footnote 13, Caption 12.
 private val Type = Typography(
     displayLarge = style(57, FontWeight.Bold, -0.5), displayMedium = style(34, FontWeight.Bold, -0.4), displaySmall = style(44, FontWeight.Bold, -0.6),
     headlineLarge = style(32, FontWeight.Bold), headlineMedium = style(28, FontWeight.Bold, -0.3), headlineSmall = style(24, FontWeight.SemiBold),

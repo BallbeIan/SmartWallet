@@ -25,7 +25,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 
 ## Highlights
 
-- **Designed like an Apple app.** Big titles, rounded grouped lists, forms that slide up as sheets, a flat tab bar and green switches, in a light and a dark theme that can follow your phone.
+- **The Clarity design.** Big titles, rounded grouped lists, forms that slide up as sheets, a flat tab bar and green switches, in a light and a dark theme that can follow your phone.
 - **One total, any account.** The home screen shows the total across every account. Tap an account to look at just that one: its balance, its month, its recent activity.
 - **Fast logging.** Expense, Income and Transfer are one tap away, with categories, dates and notes. The dialogs fit on one screen and never open the keyboard until you ask.
 - **Budgets that warn you.** Set a monthly limit per category and watch the bar turn amber, then red.

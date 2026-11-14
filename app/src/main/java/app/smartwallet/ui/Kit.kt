@@ -43,19 +43,19 @@ fun SectionHeader(text: String, modifier: Modifier = Modifier) =
     Text(text.uppercase(), modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 7.dp),
         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-/** An inset rounded card, like a grouped list on iOS. */
+/** An inset rounded card: one group of a grouped list. */
 @Composable
 fun Grouped(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) =
     Surface(modifier.fillMaxWidth().padding(horizontal = 16.dp), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(content = content)
     }
 
-/** The hairline between rows, inset from the left like on iOS. */
+/** The hairline between rows, inset from the left. */
 @Composable
 fun Hairline(startIndent: Dp = 16.dp) =
     HorizontalDivider(Modifier.padding(start = startIndent), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
 
-/** A coloured rounded square with a white symbol: Apple's app-icon style badge. */
+/** A coloured rounded square with a white symbol, used as an icon badge. */
 @Composable
 fun Squircle(icon: ImageVector, color: Color, size: Dp = 30.dp) {
     Box(Modifier.size(size).clip(RoundedCornerShape(size * 0.26f)).background(color), contentAlignment = Alignment.Center) {
@@ -66,7 +66,7 @@ fun Squircle(icon: ImageVector, color: Color, size: Dp = 30.dp) {
 @Composable
 fun Chevron() = Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(22.dp))
 
-/** The green iOS-style switch. */
+/** The green switch. */
 @Composable
 fun AppSwitch(checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     val off = if (AppTheme.isDark) Color(0xFF39393D) else Color(0xFFE9E9EA)
