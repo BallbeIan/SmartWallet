@@ -32,6 +32,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 - **Month end, your way.** Pick the account you spend from. When a month is over, leave the leftover in place, move it to another account, or cover an overspend from savings. Anything that stays is shown as a *Carried over* entry, and it is recalculated for every month whenever you edit the past.
 - **Private by design.** The app **never asks for the internet permission**. Your data lives in a local database on the phone, and there is no account, no analytics and no ads.
 - **App lock.** Optionally protect the app with a PIN and your fingerprint or face. It locks when you leave, hides its preview in the recent-apps list, and slows down guessing.
+- **Dark, light or automatic.** Pick a theme in Settings, or follow your phone.
 - **Your currency.** Pick any currency; amounts are shown with its symbol and formatting.
 
 ## Screenshots

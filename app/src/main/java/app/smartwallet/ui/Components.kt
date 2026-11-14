@@ -16,7 +16,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-val IncomeColor = Green
+val IncomeColor: Color get() = Green
 
 fun YearMonth.label(): String = format(DateTimeFormatter.ofPattern("LLLL yyyy"))
 fun java.time.LocalDate.label(): String = format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))

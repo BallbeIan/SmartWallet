@@ -118,7 +118,7 @@ fun HomeScreen(vm: WalletViewModel, go: (Int) -> Unit, openSettings: () -> Unit,
         val heroShape = MaterialTheme.shapes.large
         Column(
             Modifier.fillMaxWidth().clip(heroShape).border(1.dp, MaterialTheme.colorScheme.outlineVariant, heroShape)
-                .background(Brush.linearGradient(listOf(Color(0xFF18223A), Color(0xFF0E1425))))
+                .background(Brush.linearGradient(if (AppTheme.isDark) listOf(Color(0xFF18223A), Color(0xFF0E1425)) else listOf(Color(0xFFE4F6EE), Color(0xFFE3ECFB))))
                 .drawBehind {
                     drawCircle(Green.copy(alpha = 0.16f), size.width * 0.22f, Offset(size.width * 0.95f, size.height * 0.02f))
                     drawCircle(Blue.copy(alpha = 0.14f), size.width * 0.2f, Offset(size.width * 0.02f, size.height * 0.98f))
@@ -145,7 +145,7 @@ fun HomeScreen(vm: WalletViewModel, go: (Int) -> Unit, openSettings: () -> Unit,
                 items(accounts, key = { it.id }) { a -> Choice(a.name, selected?.id == a.id, { vm.selectedAccountId.value = a.id }) }
             }
             Column(
-                Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(Color.White.copy(alpha = 0.05f))
+                Modifier.fillMaxWidth().clip(MaterialTheme.shapes.medium).background(if (AppTheme.isDark) Color.White.copy(alpha = 0.05f) else Color.White.copy(alpha = 0.7f))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium).padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {

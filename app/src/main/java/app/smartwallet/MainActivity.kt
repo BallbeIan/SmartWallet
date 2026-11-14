@@ -29,6 +29,12 @@ import app.smartwallet.ui.*
 
 // FragmentActivity (a ComponentActivity subclass) is what the biometric prompt needs.
 class MainActivity : FragmentActivity() {
+    private fun applySystemBars(dark: Boolean) {
+        val transparent = android.graphics.Color.TRANSPARENT
+        val style = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent)
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+    }
+
     override fun onStop() {
         super.onStop()
         AppLock.onStop()
@@ -49,8 +55,8 @@ class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge(statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
+        AppTheme.load(this)
+        applySystemBars(AppTheme.isDark)
         // Debug only: `adb shell am start ... --ez demo true` loads sample data without touching the screen.
         app.smartwallet.data.Money.load(this)
         AppLock.onCreate(this)
@@ -60,7 +66,12 @@ class MainActivity : FragmentActivity() {
             androidx.lifecycle.ViewModelProvider(this)[WalletViewModel::class.java].loadDemoData()
         }
         // While locked, the app itself is not even composed, so nothing behind the lock screen can be read or tapped.
-        setContent { WalletTheme { Surface { if (AppLock.locked) LockScreen(this@MainActivity) else WalletApp() } } }
+        setContent {
+            // Status and navigation bar icons need to flip with the theme.
+            val dark = AppTheme.isDark
+            SideEffect { applySystemBars(dark) }
+            WalletTheme { Surface { if (AppLock.locked) LockScreen(this@MainActivity) else WalletApp() } }
+        }
     }
 }
 

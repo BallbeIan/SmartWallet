@@ -114,6 +114,7 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
     var disablingLock by remember { mutableStateOf(false) }
     var pickingTimeout by remember { mutableStateOf(false) }
     val timeoutLabel = { ms: Long -> when (ms) { 0L -> "Immediately"; 60_000L -> "After 1 minute"; else -> "After ${ms / 60_000} minutes" } }
+    var pickingTheme by remember { mutableStateOf(false) }
     var pickingCurrency by remember { mutableStateOf(false) }
     var pickingLead by remember { mutableStateOf(false) }
     var pickingKeep by remember { mutableStateOf(false) }
@@ -135,6 +136,8 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
                 GroupLabel("General")
                 Group {
                     val c = Money.currency()
+                    Row(Icons.Filled.Palette, Blue, "Theme", AppTheme.mode.label) { pickingTheme = true }
+                    Divider()
                     Row(Icons.Filled.AttachMoney, Green, "Currency", "${c.currencyCode} · ${c.symbol}${if (Money.code == null) " (device)" else ""}") { pickingCurrency = true }
                     Divider()
                     Row(Icons.Filled.Notifications, Amber, "Payment reminders", if (remindersOn) leadLabel(leadDays) else "Off",
@@ -281,6 +284,9 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
         else PinDialog("Turn off app lock", requireCurrent = true, askNew = false, confirmText = "Turn off", onDismiss = { disablingLock = false }) { _, _ ->
             AppLock.clear(ctx); lockOn = false; bioOn = false; disablingLock = false
         }
+    }
+    if (pickingTheme) WalletDialog("Theme", { pickingTheme = false }) {
+        ChoiceGroup(AppTheme.Mode.entries, { it == AppTheme.mode }, { it.label }) { AppTheme.set(ctx, it); pickingTheme = false }
     }
     if (pickingTimeout) WalletDialog("Lock", { pickingTimeout = false }) {
         ChoiceGroup(listOf(0L, 60_000L, 300_000L, 900_000L), { it == timeoutMs }, timeoutLabel) { timeoutMs = it; AppLock.setTimeoutMs(ctx, it); pickingTimeout = false }
