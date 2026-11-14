@@ -18,11 +18,12 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "app.smartwallet"
+        // The Play Store id. It is permanent once an app is uploaded, and differs from the code namespace on purpose.
+        applicationId = "io.github.ballbeian.smartwallet"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "2.0"
+        versionCode = 7
+        versionName = "2.1"
     }
 
     signingConfigs {

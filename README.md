@@ -158,10 +158,14 @@ Debug builds have a **Developer** section in Settings with *Load demo data* and 
 
 ```bash
 ./gradlew installDemo
-adb shell am start -n app.smartwallet.demo/app.smartwallet.MainActivity --ez demo true
+adb shell am start -n io.github.ballbeian.smartwallet.demo/app.smartwallet.MainActivity --ez demo true
 ```
 
 The screenshots above were taken this way.
+
+## Privacy
+
+SmartWallet collects nothing and never connects to the internet. Read the full [privacy policy](docs/PRIVACY.md).
 
 ## Credits
 
