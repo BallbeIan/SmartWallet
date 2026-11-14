@@ -125,6 +125,9 @@ fun WalletApp(vm: WalletViewModel = viewModel()) {
     val snackbar = remember { SnackbarHostState() }
     val message by vm.message.collectAsState()
     LaunchedEffect(message) { message?.let { snackbar.showSnackbar(it); vm.clearMessage() } }
+    // A backup file the user picked is confirmed here, so it works whichever screen is showing.
+    val pendingImport by vm.pendingImport.collectAsState()
+    pendingImport?.let { info -> ImportDialog(info, { parts -> vm.importBackup(info, parts) }) { vm.pendingImport.value = null } }
     BackHandler(overlay != 0 || tab != TAB_HOME) { if (overlay != 0) overlay = 0 else tab = TAB_HOME }
 
     Scaffold(

@@ -30,6 +30,9 @@ import app.smartwallet.BuildConfig
 import app.smartwallet.Reminders
 import app.smartwallet.WalletViewModel
 import app.smartwallet.data.Account
+import app.smartwallet.data.Counts
+import app.smartwallet.data.Parts
+import app.smartwallet.data.isAuto
 import app.smartwallet.data.MonthEnd
 import app.smartwallet.data.Money
 import java.time.LocalDate
@@ -63,15 +66,22 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
     var page by rememberSaveable { mutableIntStateOf(MAIN) }
     BackHandler(page != MAIN) { page = MAIN }
 
-    val export = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { it?.let(vm::exportCsv) }
-    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let(vm::importCsv) }
+    var exportParts by remember { mutableStateOf(Parts()) }
+    val exportCsv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { it?.let(vm::exportCsv) }
+    val exportJson = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { it?.let { uri -> vm.exportBackup(uri, exportParts) } }
+    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { it?.let(vm::openImport) }
+    var exporting by remember { mutableStateOf(false) }
+    val budgets by vm.budgets.collectAsState()
+    val scheduled by vm.recurring.collectAsState()
+    val allTransactions by vm.transactions.collectAsState()
+    val settingsVersion by vm.settingsVersion.collectAsState()
 
-    var remindersOn by remember { mutableStateOf(Reminders.enabled(ctx) && Reminders.hasPermission(ctx)) }
-    var leadDays by remember { mutableIntStateOf(Reminders.leadDays(ctx)) }
+    var remindersOn by remember(settingsVersion) { mutableStateOf(Reminders.enabled(ctx) && Reminders.hasPermission(ctx)) }
+    var leadDays by remember(settingsVersion) { mutableIntStateOf(Reminders.leadDays(ctx)) }
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) { Reminders.setEnabled(ctx, true); remindersOn = true } else vm.message.value = "Notifications are blocked for SmartWallet in system settings"
     }
-    var rules by remember { mutableStateOf(MonthEnd.load(ctx)) }
+    var rules by remember(settingsVersion) { mutableStateOf(MonthEnd.load(ctx)) }
     fun update(r: MonthEnd.Rules) { rules = r; MonthEnd.save(ctx, r); vm.monthEndChanged() }
 
     val activity = ctx as FragmentActivity
@@ -153,9 +163,9 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
                 Grouped {
                     Row(Icons.Rounded.Category, Teal, "Categories", "${categories.size} categories") { page = CATEGORIES }
                     Hairline(58.dp)
-                    Row(Icons.Rounded.FileUpload, Blue, "Export CSV", "Save all transactions to a file") { run { AppLock.ignoreNextStop(); export.launch("smartwallet-${LocalDate.now()}.csv") } }
+                    Row(Icons.Rounded.FileUpload, Blue, "Export data", "Choose what to save to a file") { exporting = true }
                     Hairline(58.dp)
-                    Row(Icons.Rounded.FileDownload, Blue, "Import CSV", "Add transactions from a file") { run { AppLock.ignoreNextStop(); import.launch(arrayOf("*/*")) } }
+                    Row(Icons.Rounded.FileDownload, Blue, "Import data", "From a backup or a CSV file") { run { AppLock.ignoreNextStop(); import.launch(arrayOf("*/*")) } }
                 }
 
                 if (BuildConfig.DEBUG) {
@@ -249,6 +259,15 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
             AppLock.clear(ctx); lockOn = false; bioOn = false; disablingLock = false
         }
     }
+    if (exporting) ExportDialog(
+        Counts(accounts.size, categories.size, allTransactions.count { !it.isAuto() }, budgets.size, scheduled.size),
+        onExport = { csv, parts ->
+            AppLock.ignoreNextStop()
+            if (csv) exportCsv.launch("smartwallet-transactions-${LocalDate.now()}.csv")
+            else { exportParts = parts; exportJson.launch("smartwallet-backup-${LocalDate.now()}.json") }
+        },
+        onDismiss = { exporting = false },
+    )
     if (pickingTheme) WalletDialog("Theme", { pickingTheme = false }) {
         ChoiceGroup(AppTheme.Mode.entries, { it == AppTheme.mode }, { it.label }) { AppTheme.set(ctx, it); pickingTheme = false }
     }

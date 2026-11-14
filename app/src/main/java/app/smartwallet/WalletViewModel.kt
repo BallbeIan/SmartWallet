@@ -6,11 +6,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.withTransaction
 import app.smartwallet.data.*
+import app.smartwallet.ui.AppTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.time.LocalDate
 import java.time.YearMonth
 import java.util.UUID
@@ -146,21 +148,101 @@ class WalletViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun importCsv(uri: Uri) = launch {
+    // Backup and restore ------------------------------------------------------------------------------------------
+
+    /** A backup file the user picked, waiting for them to choose which parts to bring in. */
+    val pendingImport = MutableStateFlow<BackupInfo?>(null)
+
+    /** Bumped after an import changes settings, so the settings screen re-reads them. */
+    val settingsVersion = MutableStateFlow(0)
+
+    private suspend fun readFile(uri: Uri): String = withContext(Dispatchers.IO) {
+        getApplication<Application>().contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("Cannot open file")
+    }
+
+    private suspend fun writeFile(uri: Uri, text: String) = withContext(Dispatchers.IO) {
+        val out = getApplication<Application>().contentResolver.openOutputStream(uri, "wt") ?: error("Cannot open file")
+        out.bufferedWriter().use { it.write(text) }
+    }
+
+    /** The app's settings, with accounts named rather than numbered so they survive a move to another install. The PIN is never included. */
+    private suspend fun settingsJson(): JSONObject {
+        val c = getApplication<Application>()
+        val names = dao.accountsOnce().associate { it.id to it.name }
+        val rules = MonthEnd.load(c)
+        fun name(id: Long?): Any = id?.let { names[it] } ?: JSONObject.NULL
+        return JSONObject()
+            .put("currency", Money.code ?: JSONObject.NULL)
+            .put("theme", AppTheme.mode.name)
+            .put("reminders", JSONObject().put("enabled", Reminders.enabled(c)).put("leadDays", Reminders.leadDays(c)))
+            .put("monthEnd", JSONObject().put("enabled", rules.enabled).put("spendingAccount", name(rules.spending))
+                .put("moveSurplus", rules.moveSurplus).put("surplusTarget", name(rules.surplusTarget))
+                .put("coverDeficit", rules.coverDeficit).put("deficitSource", name(rules.deficitSource)).put("keepCents", rules.keepCents))
+    }
+
+    fun exportBackup(uri: Uri, parts: Parts) = launch {
         try {
-            val text = withContext(Dispatchers.IO) {
-                getApplication<Application>().contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
-                    ?: error("Cannot open file")
-            }
-            val rows = Csv.parse(text.removePrefix("\uFEFF"))
-            require(rows.isNotEmpty() && rows[0].map { it.trim().lowercase() }.take(4) == Csv.HEADER.take(4)) {
-                "expected columns: ${Csv.HEADER.joinToString()}"
-            }
-            val (ok, skipped) = importRows(rows.drop(1))
-            message.value = "Imported $ok transactions, skipped $skipped"
+            writeFile(uri, buildBackup(dao, parts, if (parts.settings) settingsJson() else null, BuildConfig.VERSION_NAME))
+            message.value = "Exported your data"
+        } catch (e: Exception) {
+            message.value = "Export failed: ${e.message}"
+        }
+    }
+
+    /** Opens a picked file: a backup waits for the user's choices, a plain CSV of transactions is imported straight away. */
+    fun openImport(uri: Uri) = launch {
+        try {
+            val text = readFile(uri)
+            if (text.trimStart('\uFEFF', ' ', '\n', '\r', '\t').startsWith("{")) pendingImport.value = parseBackup(text) else importCsvText(text)
         } catch (e: Exception) {
             message.value = "Import failed: ${e.message}"
         }
+    }
+
+    fun importBackup(info: BackupInfo, parts: Parts) = launch {
+        pendingImport.value = null
+        try {
+            val counts = importSections(db, info, parts)
+            val settings = info.settings.takeIf { parts.settings }
+            if (settings != null) { applySettings(settings); settingsVersion.value++ }
+            fun n(count: Int, one: String, many: String) = if (count == 0) null else if (count == 1) "1 $one" else "$count $many"
+            val added = listOfNotNull(
+                n(counts.accounts, "account", "accounts"), n(counts.categories, "category", "categories"),
+                n(counts.transactions, "transaction", "transactions"), n(counts.budgets, "budget", "budgets"),
+                n(counts.scheduled, "scheduled payment", "scheduled payments"), if (settings != null) "your settings" else null,
+            )
+            message.value = (if (added.isEmpty()) "Nothing new to import" else "Imported " + added.joinToString(", ")) +
+                (if (counts.alreadyThere > 0) " (${counts.alreadyThere} already there)" else "")
+        } catch (e: Exception) {
+            message.value = "Import failed: ${e.message}"
+        }
+    }
+
+    private suspend fun applySettings(s: JSONObject) {
+        val c = getApplication<Application>()
+        if (s.has("currency")) Money.setCurrency(c, if (s.isNull("currency")) null else s.optString("currency").ifBlank { null })
+        AppTheme.Mode.entries.firstOrNull { it.name == s.optString("theme") }?.let { AppTheme.set(c, it) }
+        s.optJSONObject("reminders")?.let { r ->
+            Reminders.setLeadDays(c, r.optInt("leadDays", 1))
+            // Switching reminders on needs notification permission; without it they stay off until the user allows it.
+            if (!r.optBoolean("enabled")) Reminders.setEnabled(c, false) else if (Reminders.hasPermission(c)) Reminders.setEnabled(c, true)
+        }
+        s.optJSONObject("monthEnd")?.let { m ->
+            val ids = dao.accountsOnce().associate { it.name to it.id }
+            fun id(key: String) = if (m.isNull(key)) null else ids[m.optString(key)]
+            MonthEnd.save(c, MonthEnd.Rules(m.optBoolean("enabled"), id("spendingAccount"), m.optBoolean("moveSurplus"), id("surplusTarget"),
+                m.optBoolean("coverDeficit"), id("deficitSource"), m.optLong("keepCents")))
+            monthEndChanged()
+        }
+    }
+
+    private suspend fun importCsvText(text: String) {
+        val rows = Csv.parse(text.removePrefix("\uFEFF"))
+        require(rows.isNotEmpty() && rows[0].map { it.trim().lowercase() }.take(4) == Csv.HEADER.take(4)) {
+            "this is neither a SmartWallet backup nor a CSV with the columns ${Csv.HEADER.joinToString()}"
+        }
+        val (ok, skipped) = importRows(rows.drop(1))
+        message.value = "Imported $ok transactions, skipped $skipped"
     }
 
     private suspend fun importRows(rows: List<List<String>>): Pair<Int, Int> = db.withTransaction {

@@ -75,7 +75,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 | 🔁 **Scheduled** | Subscriptions, repeating payments, and transfers between your accounts. Pause one with a switch. Optional reminders at 09:00, from the same day up to three days ahead. |
 | 📅 **Month end** | Leftover and overspend rules for the account you spend from. Applies to all months, always. |
 | 🔒 **App lock** | A 4–6 digit PIN, optional biometrics, and a choice of when it locks again (immediately, 1, 5 or 15 minutes). A forgotten PIN can be reset with the phone's own screen lock (Android 11+). |
-| 📁 **CSV** | Export everything to a file, or import a bank statement; missing accounts and categories are created for you. |
+| 📁 **Export and import** | Save exactly what you choose (accounts, categories, transactions, budgets, scheduled payments, settings) to one backup file and bring it back on any phone, picking again what to import. A CSV of transactions is also available for spreadsheets and bank statements. Importing never overwrites, and the same file can be imported twice safely. |
 
 ## How Month end works
 

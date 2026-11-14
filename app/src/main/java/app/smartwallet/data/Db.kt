@@ -48,6 +48,9 @@ interface WalletDao {
     @Update suspend fun updateRecurring(r: Recurring)
     @Delete suspend fun deleteRecurring(r: Recurring)
 
+    @Query("SELECT * FROM budgets") suspend fun budgetsOnce(): List<Budget>
+    @Query("SELECT * FROM recurring") suspend fun recurringOnce(): List<Recurring>
+
     @Query("SELECT * FROM budgets") fun budgets(): Flow<List<Budget>>
     // The unique index on categoryId makes REPLACE act as "set the limit for this category".
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertBudget(b: Budget)
