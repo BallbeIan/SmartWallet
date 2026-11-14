@@ -43,6 +43,7 @@ interface WalletDao {
     @Query("SELECT * FROM recurring ORDER BY active DESC, nextDate") fun recurring(): Flow<List<Recurring>>
     @Query("SELECT * FROM recurring WHERE active = 1 AND nextDate <= :today") suspend fun recurringDue(today: Long): List<Recurring>
     @Query("SELECT * FROM recurring WHERE active = 1 AND nextDate BETWEEN :from AND :to") suspend fun recurringUpcoming(from: Long, to: Long): List<Recurring>
+    @Query("DELETE FROM recurring WHERE toAccountId = :accountId") suspend fun deleteRecurringTransfersTo(accountId: Long)
     @Insert suspend fun insertRecurring(r: Recurring): Long
     @Update suspend fun updateRecurring(r: Recurring)
     @Delete suspend fun deleteRecurring(r: Recurring)
@@ -58,7 +59,7 @@ interface WalletDao {
 
 @Database(
     entities = [Account::class, Category::class, Txn::class, Budget::class, Recurring::class],
-    version = 4,
+    version = 5,
     exportSchema = false,
 )
 abstract class WalletDb : RoomDatabase() {
@@ -98,11 +99,18 @@ abstract class WalletDb : RoomDatabase() {
             }
         }
 
+        // Scheduled transfers between accounts.
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `recurring` ADD COLUMN `toAccountId` INTEGER")
+            }
+        }
+
         @Volatile private var instance: WalletDb? = null
 
         fun get(context: Context): WalletDb = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(context.applicationContext, WalletDb::class.java, "wallet.db")
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build().also { instance = it }
         }
     }
 }

@@ -22,8 +22,8 @@ android {
         applicationId = "app.smartwallet.expensetracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "2.2"
+        versionCode = 10
+        versionName = "2.4"
     }
 
     signingConfigs {

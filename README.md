@@ -29,7 +29,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 - **One total, any account.** The home screen shows the total across every account. Tap an account to look at just that one: its balance, its month, its recent activity.
 - **Fast logging.** Expense, Income and Transfer are one tap away, with categories, dates and notes. The dialogs fit on one screen and never open the keyboard until you ask.
 - **Budgets that warn you.** Set a monthly limit per category and watch the bar turn amber, then red.
-- **Scheduled payments.** Add Netflix, rent or a salary once (weekly, monthly or yearly). Each occurrence lands in History on its due date, and a reminder can tell you a day or two before.
+- **Scheduled payments and transfers.** Add Netflix, rent, a salary or a monthly transfer to savings once (weekly, monthly or yearly), on a day of the month you choose. Each occurrence lands in History on its due date, and a reminder can tell you a day or two before.
 - **Month end, your way.** Pick the account you spend from. When a month is over, leave the leftover in place, move it to another account, or cover an overspend from savings. Anything that stays is shown as a *Carried over* entry, and it is recalculated for every month whenever you edit the past.
 - **Private by design.** The app **never asks for the internet permission**. Your data lives in a local database on the phone, and there is no account, no analytics and no ads.
 - **App lock.** Optionally protect the app with a PIN and your fingerprint or face. It locks when you leave, hides its preview in the recent-apps list, and slows down guessing.
@@ -72,7 +72,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 | 💰 **Accounts** | Cash, bank, card, savings: as many as you like, each with its own starting balance. Transfers between accounts don't count as income or spending. |
 | 📊 **Budgets** | A monthly limit per category with progress bars, and a total for the month. |
 | 🥧 **Reports** | Spending by category as a donut chart, plus income against expenses for the last six months. |
-| 🔁 **Scheduled** | Subscriptions and repeating payments. Pause one with a switch. Optional reminders at 09:00, from the same day up to three days ahead. |
+| 🔁 **Scheduled** | Subscriptions, repeating payments, and transfers between your accounts. Pause one with a switch. Optional reminders at 09:00, from the same day up to three days ahead. |
 | 📅 **Month end** | Leftover and overspend rules for the account you spend from. Applies to all months, always. |
 | 🔒 **App lock** | A 4–6 digit PIN, optional biometrics, and a choice of when it locks again (immediately, 1, 5 or 15 minutes). A forgotten PIN can be reset with the phone's own screen lock (Android 11+). |
 | 📁 **CSV** | Export everything to a file, or import a bank statement; missing accounts and categories are created for you. |

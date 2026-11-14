@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +27,7 @@ fun ScheduledScreen(vm: WalletViewModel) {
     val catById = categories.associateBy { it.id }
     val accountNames = accounts.associate { it.id to it.name }
     val active = items.filter { it.active }
-    val monthlyOut = -active.filter { it.amountCents < 0 }.sumOf { it.monthlyCents() }
+    val monthlyOut = -active.filter { !it.isTransfer() && it.amountCents < 0 }.sumOf { it.monthlyCents() }
 
     Column {
         LargeTitle("Scheduled") {
@@ -51,11 +52,12 @@ fun ScheduledScreen(vm: WalletViewModel) {
                         val cat = catById[r.categoryId]
                         ListRow(
                             title = r.name, modifier = Modifier.alpha(if (r.active) 1f else 0.5f), onClick = { editing = r },
-                            subtitle = listOf(r.freq().label, "next ${LocalDate.ofEpochDay(r.nextDate).shortLabel()}", accountNames[r.accountId].orEmpty()).filter { it.isNotBlank() }.joinToString(" · "),
-                            leading = { LetterBadge(r.name, cat?.let { Color(it.color) } ?: Gray) },
+                            subtitle = listOf(r.freq().label, "next ${LocalDate.ofEpochDay(r.nextDate).shortLabel()}",
+                                if (r.isTransfer()) "${accountNames[r.accountId].orEmpty()} → ${accountNames[r.toAccountId].orEmpty()}" else accountNames[r.accountId].orEmpty()).filter { it.isNotBlank() }.joinToString(" · "),
+                            leading = { if (r.isTransfer()) Squircle(Icons.Rounded.SwapHoriz, Blue, 36.dp) else LetterBadge(r.name, cat?.let { Color(it.color) } ?: Gray) },
                             trailing = {
                                 Text(Money.format(r.amountCents), style = MaterialTheme.typography.bodyLarge.merge(Num),
-                                    color = if (r.amountCents > 0) IncomeText else MaterialTheme.colorScheme.onSurface)
+                                    color = if (!r.isTransfer() && r.amountCents > 0) IncomeText else MaterialTheme.colorScheme.onSurface)
                                 Spacer(Modifier.width(10.dp))
                                 AppSwitch(r.active, { vm.setRecurringActive(r, it) })
                             },

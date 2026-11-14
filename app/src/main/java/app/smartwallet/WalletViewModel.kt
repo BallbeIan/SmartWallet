@@ -15,6 +15,9 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.util.UUID
 
+/** Home's account selector: the explicit "All accounts" choice. Unset (null) means the first account. */
+const val ALL_ACCOUNTS = -1L
+
 val CategoryPalette = listOf(
     0xFFFF3B30, 0xFF007AFF, 0xFF34C759, 0xFFFF9500, 0xFFAF52DE, 0xFF30B0C7,
     0xFFFF2D55, 0xFFA2845E, 0xFF5856D6, 0xFF00C7BE, 0xFFFFCC00, 0xFF8E8E93,
@@ -78,7 +81,10 @@ class WalletViewModel(app: Application) : AndroidViewModel(app) {
 
     // Accounts
     fun saveAccount(a: Account) = launch { if (a.id == 0L) dao.insertAccount(a) else dao.updateAccount(a) }
-    fun deleteAccount(a: Account) = launch { dao.deleteAccount(a) }
+    fun deleteAccount(a: Account) = launch {
+        dao.deleteRecurringTransfersTo(a.id) // scheduled transfers into it would have nowhere to go
+        dao.deleteAccount(a)
+    }
 
     // Transactions
     fun saveTxn(t: Txn) = launch { if (t.id == 0L) dao.insertTxn(t) else dao.updateTxn(t) }
@@ -233,6 +239,8 @@ class WalletViewModel(app: Application) : AndroidViewModel(app) {
                 dao.insertRecurring(Recurring(accountId = card, categoryId = cat(c), amountCents = -v, name = n,
                     frequency = Freq.MONTHLY.name, nextDate = next.toEpochDay(), anchorDay = next.dayOfMonth))
             }
+            dao.insertRecurring(Recurring(accountId = checking, categoryId = null, amountCents = 20_000, name = "Monthly savings",
+                frequency = Freq.MONTHLY.name, nextDate = today.plusDays(5).toEpochDay(), anchorDay = today.plusDays(5).dayOfMonth, toAccountId = savings))
             dao.insertRecurring(Recurring(accountId = checking, categoryId = cat("Utilities"), amountCents = -9900, name = "Insurance",
                 frequency = Freq.YEARLY.name, nextDate = today.plusDays(40).toEpochDay(), anchorDay = today.plusDays(40).dayOfMonth))
             mapOf("Groceries" to 450, "Dining" to 200, "Transport" to 150, "Shopping" to 200,

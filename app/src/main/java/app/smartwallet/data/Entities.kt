@@ -71,7 +71,11 @@ data class Recurring(
     val nextDate: Long, // epoch day of the next occurrence
     val anchorDay: Int, // day of month to return to after short months (31st -> Feb 28 -> Mar 31)
     val active: Boolean = true,
+    /** Non-null makes this a transfer from accountId to toAccountId; amountCents is then a positive amount. */
+    val toAccountId: Long? = null,
 )
+
+fun Recurring.isTransfer() = toAccountId != null
 
 fun Recurring.freq(): Freq = Freq.entries.firstOrNull { it.name == frequency } ?: Freq.MONTHLY
 

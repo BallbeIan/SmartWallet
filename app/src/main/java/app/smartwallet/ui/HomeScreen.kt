@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import app.smartwallet.ALL_ACCOUNTS
 import app.smartwallet.WalletViewModel
 import app.smartwallet.data.*
 
@@ -63,7 +64,8 @@ fun HomeScreen(vm: WalletViewModel, go: (Int) -> Unit, openSettings: () -> Unit,
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
     val selectedId by vm.selectedAccountId.collectAsState()
-    val selected = accounts.firstOrNull { it.id == selectedId } // null = all accounts
+    // Opens on the first account; "All accounts" is an explicit choice. null below means all accounts.
+    val selected = if (selectedId == ALL_ACCOUNTS) null else accounts.firstOrNull { it.id == selectedId } ?: accounts.firstOrNull()
     val inScope = txns.filter { selected == null || it.accountId == selected.id }
     val real = inScope.filter { it.inMonth(month) && it.transferId == null }
     val inflow = real.filter { it.amountCents > 0 }.sumOf { it.amountCents }
@@ -89,7 +91,7 @@ fun HomeScreen(vm: WalletViewModel, go: (Int) -> Unit, openSettings: () -> Unit,
 
         // Which account's money is tracked below.
         LazyRow(Modifier.padding(top = 14.dp), contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            item { Choice("All accounts", selected == null, { vm.selectedAccountId.value = null }) }
+            item { Choice("All accounts", selected == null, { vm.selectedAccountId.value = ALL_ACCOUNTS }) }
             items(accounts, key = { it.id }) { a -> Choice(a.name, selected?.id == a.id, { vm.selectedAccountId.value = a.id }) }
         }
 

@@ -333,47 +333,79 @@ fun AmountDialog(title: String, initialCents: Long?, confirm: String = "Save", l
     }
 }
 
+/** 1st, 2nd, 3rd, 4th ... 11th, 12th, 13th ... 21st. */
+internal fun ordinal(n: Int): String {
+    val suffix = if (n % 100 in 11..13) "th" else when (n % 10) { 1 -> "st"; 2 -> "nd"; 3 -> "rd"; else -> "th" }
+    return "$n$suffix"
+}
+
+/**
+ * The first due date and the billing day for a scheduled payment. A monthly payment only uses the day of the month of
+ * [picked]: new ones start this month or, when skipped, next month; edits never back-fill, they take the next occurrence.
+ */
+internal fun scheduleFor(freq: Freq, picked: LocalDate, initial: Recurring?, includeThisMonth: Boolean, today: LocalDate): Pair<Long, Int> {
+    if (initial != null && picked.toEpochDay() == initial.nextDate) return initial.nextDate to initial.anchorDay // untouched
+    if (freq != Freq.MONTHLY) return picked.toEpochDay() to picked.dayOfMonth
+    val day = picked.dayOfMonth
+    fun inMonth(m: java.time.YearMonth) = m.atDay(minOf(day, m.lengthOfMonth()))
+    val thisMonth = inMonth(java.time.YearMonth.from(today))
+    val first = when {
+        initial == null -> if (includeThisMonth) thisMonth else inMonth(java.time.YearMonth.from(today).plusMonths(1))
+        !thisMonth.isBefore(today) -> thisMonth
+        else -> inMonth(java.time.YearMonth.from(today).plusMonths(1))
+    }
+    return first.toEpochDay() to day
+}
+
 @Composable
 fun RecurringDialog(
     initial: Recurring?, accounts: List<Account>, categories: List<Category>,
     onSave: (Recurring) -> Unit, onDelete: (() -> Unit)?, onDismiss: () -> Unit,
 ) {
+    // kind: 0 expense, 1 income, 2 transfer between accounts
     var name by remember { mutableStateOf(initial?.name.orEmpty()) }
-    var income by remember { mutableStateOf((initial?.amountCents ?: -1L) > 0) }
+    var kind by remember { mutableIntStateOf(if (initial?.isTransfer() == true) 2 else if ((initial?.amountCents ?: -1L) > 0) 1 else 0) }
     var amount by remember { mutableStateOf(initial?.let { Money.plain(abs(it.amountCents)) } ?: "") }
     var accountId by remember { mutableStateOf(initial?.accountId ?: accounts.firstOrNull()?.id) }
+    var toId by remember { mutableStateOf(initial?.toAccountId ?: accounts.firstOrNull { it.id != accountId }?.id) }
     var categoryId by remember { mutableStateOf(initial?.categoryId) }
     var freq by remember { mutableStateOf(initial?.freq() ?: Freq.MONTHLY) }
     var date by remember { mutableStateOf(initial?.let { LocalDate.ofEpochDay(it.nextDate) } ?: LocalDate.now()) }
+    var includeThisMonth by remember { mutableStateOf(true) } // new monthly payments: add this month's, or skip to next month
     var pickDate by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
+    val monthly = freq == Freq.MONTHLY
+    val shownDay = if (initial != null && date.toEpochDay() == initial.nextDate) initial.anchorDay else date.dayOfMonth
+    val transfer = kind == 2
+    val income = kind == 1
     val cents = Money.parse(amount)
-    val valid = name.isNotBlank() && cents != null && cents > 0 && accountId != null
+    val valid = name.isNotBlank() && cents != null && cents > 0 && accountId != null && (!transfer || (toId != null && toId != accountId))
     val shown = categories.filter { it.isIncome == income }
-    val tint = if (income) Green else Expense
+    val tint = listOf(Expense, Green, Blue)[kind]
 
     WalletDialog(
         if (initial == null) "New scheduled payment" else "Edit scheduled payment", onDismiss,
-        confirmEnabled = valid, confirmColor = if (income) IncomeGreen else ExpenseRed,
+        confirmEnabled = valid, confirmColor = tint,
         onConfirm = {
+            val (firstDue, billingDay) = scheduleFor(freq, date, initial, includeThisMonth, LocalDate.now())
             onSave(Recurring(
-                id = initial?.id ?: 0, accountId = accountId!!, categoryId = categoryId,
-                amountCents = if (income) cents!! else -cents!!, name = name.trim(), frequency = freq.name,
-                nextDate = date.toEpochDay(),
-                // Keep the original billing day unless the user picked a new date.
-                anchorDay = if (initial != null && date.toEpochDay() == initial.nextDate) initial.anchorDay else date.dayOfMonth,
+                id = initial?.id ?: 0, accountId = accountId!!, categoryId = if (transfer) null else categoryId,
+                amountCents = if (kind == 0) -cents!! else cents!!, name = name.trim(), frequency = freq.name,
+                nextDate = firstDue, anchorDay = billingDay,
                 active = initial?.active ?: true,
+                toAccountId = if (transfer) toId else null,
             ))
             onDismiss()
         },
         leading = onDelete?.let { { TextButton({ confirmDelete = true }) { Text("Delete", color = Expense) } } },
     ) {
-        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name (e.g. Netflix)") }, singleLine = true, keyboardOptions = TextKeyboard,
+        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text(if (transfer) "Name (e.g. Monthly savings)" else "Name (e.g. Netflix)") }, singleLine = true, keyboardOptions = TextKeyboard,
             shape = MaterialTheme.shapes.small, colors = fieldColors())
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Choice("Expense", !income, { income = false; categoryId = null }, Expense)
-            Choice("Income", income, { income = true; categoryId = null }, Green)
+            Choice("Expense", kind == 0, { kind = 0; categoryId = null }, Expense)
+            Choice("Income", kind == 1, { kind = 1; categoryId = null }, Green)
+            Choice("Transfer", kind == 2, { kind = 2 }, Blue)
         }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             SectionLabel("Amount · ${currencySymbol()}")
@@ -384,18 +416,38 @@ fun RecurringDialog(
             ChoiceGroup(Freq.entries, { it == freq }, { it.label }) { freq = it }
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionLabel("Account")
-            ChoiceGroup(accounts, { it.id == accountId }, { it.name }) { accountId = it.id }
+            SectionLabel(if (transfer) "From" else "Account")
+            ChoiceGroup(accounts, { it.id == accountId }, { it.name }, if (transfer) Blue else Green) {
+                accountId = it.id
+                if (toId == it.id) toId = accounts.firstOrNull { a -> a.id != it.id }?.id // a transfer needs two different accounts
+            }
         }
-        CategoryPicker(shown, categoryId) { categoryId = it }
+        if (transfer) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                SectionLabel("To")
+                ChoiceGroup(accounts.filter { it.id != accountId }, { it.id == toId }, { it.name }, Blue) { toId = it.id }
+                if (accounts.size < 2) Text("Add a second account to schedule a transfer.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else CategoryPicker(shown, categoryId) { categoryId = it }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionLabel("Next payment")
+            SectionLabel(if (monthly) "On this day of each month" else "Next payment")
             FormRow({ pickDate = true }) {
                 Icon(Icons.Rounded.CalendarMonth, null, tint = Green)
-                Text(date.label(), Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
+                Text(if (monthly) "The ${ordinal(shownDay)} of each month" + (if (shownDay > 28) " (or the last day)" else "") else date.label(),
+                    Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
             }
-            if (date.isBefore(LocalDate.now())) Text("A payment dated in the past is added to History right away.", style = MaterialTheme.typography.bodySmall,
+            if (monthly) Text("Pick any date: only its day of the month is used.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            else if (date.isBefore(LocalDate.now())) Text("A payment dated in the past is added to History right away.", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (monthly && initial == null) FormRow({ includeThisMonth = !includeThisMonth }) {
+                Column(Modifier.weight(1f)) {
+                    Text("Add to this month", style = MaterialTheme.typography.bodyLarge)
+                    Text(if (includeThisMonth) "This month's payment is added, right away if its day has passed."
+                        else "Skipped this month. The first payment is next month.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                AppSwitch(includeThisMonth, { includeThisMonth = it })
+            }
         }
     }
     if (pickDate) WalletDatePicker(date, { date = it }) { pickDate = false }
