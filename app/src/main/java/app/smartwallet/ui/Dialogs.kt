@@ -20,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -42,6 +43,9 @@ internal val TextKeyboard = KeyboardOptions(capitalization = KeyboardCapitalizat
 // Kept as names for the call sites; they are now simply the system red and green.
 val ExpenseRed: Color get() = Expense
 val IncomeGreen: Color get() = Green
+
+/** The one height every sheet comes up to. It fits the tallest form (new transaction) without scrolling. */
+internal val SheetHeight = 560.dp
 
 /** Page colours inside a sheet: white (or dark grey) cards on a light grey (or dark) sheet. */
 val SheetBg: Color get() = if (AppTheme.isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
@@ -69,7 +73,9 @@ fun WalletDialog(
         containerColor = SheetBg, shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
         dragHandle = { Box(Modifier.padding(top = 8.dp, bottom = 2.dp).size(width = 36.dp, height = 5.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))) },
     ) {
-        Column(Modifier.navigationBarsPadding().imePadding()) {
+        // Every sheet in the app comes up to the same height, whatever it holds; it only shrinks on a very short screen.
+        val height = minOf(SheetHeight, (LocalConfiguration.current.screenHeightDp - 100).dp)
+        Column(Modifier.height(height).navigationBarsPadding().imePadding()) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onDismiss, Modifier.widthIn(min = 80.dp)) { Text(dismissText, color = Green, style = MaterialTheme.typography.bodyLarge) }
                 Text(title, Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, maxLines = 1)
@@ -78,8 +84,8 @@ fun WalletDialog(
                         color = if (confirmEnabled) confirmColor else MaterialTheme.colorScheme.outline)
                 } else Spacer(Modifier.width(80.dp))
             }
-            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 6.dp, bottom = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
             if (leading != null) Surface(Modifier.padding(horizontal = 16.dp).padding(bottom = 20.dp).fillMaxWidth(), shape = MaterialTheme.shapes.small, color = SheetCard) {
                 Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { leading() }
             }
@@ -253,22 +259,7 @@ fun TransactionDialog(
         },
         leading = onDelete?.let { { TextButton({ onDelete(); onDismiss() }) { Text("Delete", color = Expense) } } },
     ) {
-        if (initial == null) {
-            // Segmented control: a grey track with a white thumb under the chosen option.
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(3.dp)) {
-                kinds.forEachIndexed { i, l ->
-                    val on = kind == i
-                    Box(
-                        Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (on) (if (AppTheme.isDark) Color(0xFF636366) else Color.White) else Color.Transparent)
-                            .clickable { kind = i; categoryId = null }.padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(l, style = MaterialTheme.typography.bodyMedium, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-            }
-        }
+        if (initial == null) Segmented(kinds, kind) { kind = it; categoryId = null }
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             SectionLabel("Amount · ${currencySymbol()}")
             AmountField(amount, { amount = it }, textColor, amount.isNotEmpty() && cents == null)
@@ -329,6 +320,41 @@ fun AmountDialog(title: String, initialCents: Long?, confirm: String = "Save", l
             SectionLabel("$label · ${currencySymbol()}")
             AmountField(text, { text = it }, Green, text.isNotEmpty() && cents == null)
             Text(hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** A segmented control: a grey track with a white thumb under the chosen option. */
+@Composable
+internal fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(3.dp)) {
+        options.forEachIndexed { i, label ->
+            val on = selected == i
+            Box(
+                Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (on) (if (AppTheme.isDark) Color(0xFF636366) else Color.White) else Color.Transparent)
+                    .clickable { onSelect(i) }.padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            }
+        }
+    }
+}
+
+/** A compact field showing a small label over the current value; tapping opens a menu of choices in place. */
+@Composable
+internal fun <T> PickerRow(label: String, value: String, items: List<T>, text: (T) -> String, modifier: Modifier = Modifier, onSelect: (T) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box(modifier) {
+        FormRow({ open = true }) {
+            Column(Modifier.weight(1f)) {
+                Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(value, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+            }
+            Icon(Icons.Rounded.ExpandMore, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        DropdownMenu(open, { open = false }) {
+            items.forEach { item -> DropdownMenuItem(text = { Text(text(item)) }, onClick = { onSelect(item); open = false }) }
         }
     }
 }
@@ -400,55 +426,41 @@ fun RecurringDialog(
         },
         leading = onDelete?.let { { TextButton({ confirmDelete = true }) { Text("Delete", color = Expense) } } },
     ) {
-        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text(if (transfer) "Name (e.g. Monthly savings)" else "Name (e.g. Netflix)") }, singleLine = true, keyboardOptions = TextKeyboard,
-            shape = MaterialTheme.shapes.small, colors = fieldColors())
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Choice("Expense", kind == 0, { kind = 0; categoryId = null }, Expense)
-            Choice("Income", kind == 1, { kind = 1; categoryId = null }, Green)
-            Choice("Transfer", kind == 2, { kind = 2 }, Blue)
+        // Compact on purpose: the whole form fits in a short sheet, with no scrolling.
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedTextField(name, { name = it }, Modifier.weight(1.2f), label = { Text("Name") }, placeholder = { Text(if (transfer) "Monthly savings" else "Netflix") },
+                singleLine = true, keyboardOptions = TextKeyboard, shape = MaterialTheme.shapes.small, colors = fieldColors())
+            OutlinedTextField(amount, { amount = it }, Modifier.weight(1f), label = { Text("Amount (${currencySymbol()})") }, singleLine = true,
+                isError = amount.isNotEmpty() && cents == null, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                textStyle = MaterialTheme.typography.bodyLarge.merge(Num).copy(color = tint), shape = MaterialTheme.shapes.small, colors = fieldColors())
         }
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            SectionLabel("Amount · ${currencySymbol()}")
-            AmountField(amount, { amount = it }, tint, amount.isNotEmpty() && cents == null)
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionLabel("Repeats")
-            ChoiceGroup(Freq.entries, { it == freq }, { it.label }) { freq = it }
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionLabel(if (transfer) "From" else "Account")
-            ChoiceGroup(accounts, { it.id == accountId }, { it.name }, if (transfer) Blue else Green) {
+        Segmented(listOf("Expense", "Income", "Transfer"), kind) { kind = it; if (it != 2) categoryId = null }
+        Segmented(Freq.entries.map { it.label }, Freq.entries.indexOf(freq)) { freq = Freq.entries[it] }
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            PickerRow(if (transfer) "From" else "Account", accounts.firstOrNull { it.id == accountId }?.name ?: "None", accounts, { it.name }, Modifier.weight(1f)) {
                 accountId = it.id
                 if (toId == it.id) toId = accounts.firstOrNull { a -> a.id != it.id }?.id // a transfer needs two different accounts
             }
+            if (transfer) PickerRow("To", accounts.firstOrNull { it.id == toId }?.name ?: "None", accounts.filter { it.id != accountId }, { it.name }, Modifier.weight(1f)) { toId = it.id }
+            else PickerRow("Category", shown.firstOrNull { it.id == categoryId }?.name ?: "None", listOf<Category?>(null) + shown, { it?.name ?: "None" }, Modifier.weight(1f)) { categoryId = it?.id }
         }
-        if (transfer) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                SectionLabel("To")
-                ChoiceGroup(accounts.filter { it.id != accountId }, { it.id == toId }, { it.name }, Blue) { toId = it.id }
-                if (accounts.size < 2) Text("Add a second account to schedule a transfer.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else CategoryPicker(shown, categoryId) { categoryId = it }
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            SectionLabel(if (monthly) "On this day of each month" else "Next payment")
-            FormRow({ pickDate = true }) {
-                Icon(Icons.Rounded.CalendarMonth, null, tint = Green)
-                Text(if (monthly) "The ${ordinal(shownDay)} of each month" + (if (shownDay > 28) " (or the last day)" else "") else date.label(),
-                    Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
-            }
-            if (monthly) Text("Pick any date: only its day of the month is used.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            else if (date.isBefore(LocalDate.now())) Text("A payment dated in the past is added to History right away.", style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (monthly && initial == null) FormRow({ includeThisMonth = !includeThisMonth }) {
-                Column(Modifier.weight(1f)) {
-                    Text("Add to this month", style = MaterialTheme.typography.bodyLarge)
-                    Text(if (includeThisMonth) "This month's payment is added, right away if its day has passed."
-                        else "Skipped this month. The first payment is next month.",
-                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                AppSwitch(includeThisMonth, { includeThisMonth = it })
+        if (transfer && accounts.size < 2) Text("Add a second account to schedule a transfer.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FormRow({ pickDate = true }) {
+            Icon(Icons.Rounded.CalendarMonth, null, tint = Green)
+            Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                Text(if (monthly) "On this day of each month" else "Next payment", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (monthly) "The ${ordinal(shownDay)}" + (if (shownDay > 28) " (or the last day)" else "") else date.label(), style = MaterialTheme.typography.bodyLarge)
             }
         }
+        if (monthly && initial == null) FormRow({ includeThisMonth = !includeThisMonth }) {
+            Column(Modifier.weight(1f)) {
+                Text("Add to this month", style = MaterialTheme.typography.bodyLarge)
+                Text(if (includeThisMonth) "Added right away if its day has passed" else "The first payment is next month",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            AppSwitch(includeThisMonth, { includeThisMonth = it })
+        } else if (!monthly && date.isBefore(LocalDate.now())) Text("A payment dated in the past is added to History right away.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (pickDate) WalletDatePicker(date, { date = it }) { pickDate = false }
     if (confirmDelete) ConfirmDialog("Delete scheduled payment?", "Payments already added to History stay.",

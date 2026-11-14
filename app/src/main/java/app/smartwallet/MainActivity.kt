@@ -14,7 +14,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -94,7 +96,8 @@ private fun TabBar(tabs: List<Tab>, selected: Int?, onSelect: (Int) -> Unit) {
     Surface(color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.97f)) {
         Column {
             HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-            Row(Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 7.dp, bottom = 3.dp)) {
+            Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(top = 7.dp, bottom = 3.dp), contentAlignment = Alignment.Center) {
+            Row(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
                 tabs.forEachIndexed { i, t ->
                     val on = selected == i
                     val tint = if (on) Green else MaterialTheme.colorScheme.onSurfaceVariant
@@ -106,6 +109,7 @@ private fun TabBar(tabs: List<Tab>, selected: Int?, onSelect: (Int) -> Unit) {
                         Text(t.label, color = tint, fontSize = 10.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium, maxLines = 1)
                     }
                 }
+            }
             }
         }
     }
@@ -135,7 +139,8 @@ fun WalletApp(vm: WalletViewModel = viewModel()) {
         snackbarHost = { SnackbarHost(snackbar) },
         bottomBar = { TabBar(tabs, if (overlay == 0) tab else null) { tab = it; overlay = 0 } },
     ) { pad ->
-        Box(Modifier.padding(pad)) {
+        // On a wide screen (unfolded Fold, tablet) the content stays a readable width in the middle.
+        Box(Modifier.padding(pad).fillMaxSize(), contentAlignment = Alignment.TopCenter) { Box(Modifier.widthIn(max = 640.dp).fillMaxSize()) {
             if (overlay == 1) {
                 SettingsScreen(vm) { overlay = 0 }
             } else if (overlay == 2) {
@@ -150,6 +155,6 @@ fun WalletApp(vm: WalletViewModel = viewModel()) {
                 TAB_REPORTS -> ReportsScreen(vm)
                 else -> AccountsScreen(vm)
             }
-        }
+        } }
     }
 }
