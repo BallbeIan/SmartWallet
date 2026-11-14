@@ -260,7 +260,7 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
         var income by remember { mutableStateOf(false) }
         WalletDialog("New category", { addingCategory = false }, "Add", confirmEnabled = name.isNotBlank(),
             onConfirm = { vm.addCategory(name, income); addingCategory = false }) {
-            OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name") }, singleLine = true,
+            OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name") }, singleLine = true, keyboardOptions = TextKeyboard,
                 shape = MaterialTheme.shapes.small, colors = fieldColors())
             SectionLabel("Type")
             androidx.compose.foundation.layout.Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

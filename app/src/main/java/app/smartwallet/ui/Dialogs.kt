@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,9 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlin.math.abs
+
+/** Every free-text field starts with a capital letter. Numeric and PIN fields keep their own keyboards. */
+internal val TextKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
 
 val ExpenseRed = Color(0xFFE8365D)
 val IncomeGreen = Color(0xFF14A86F)
@@ -181,7 +185,7 @@ fun AccountDialog(initial: Account?, onSave: (Account) -> Unit, onDelete: (() ->
         onConfirm = { onSave((initial ?: Account(name = "")).copy(name = name.trim(), initialCents = cents!!)); onDismiss() },
         leading = onDelete?.let { { TextButton({ confirmDelete = true }) { Text("Delete", color = Expense) } } },
     ) {
-        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name") }, singleLine = true,
+        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name") }, singleLine = true, keyboardOptions = TextKeyboard,
             shape = MaterialTheme.shapes.small, colors = fieldColors())
         OutlinedTextField(balance, { balance = it }, Modifier.fillMaxWidth(), label = { Text("Starting balance (${currencySymbol()})") }, singleLine = true,
             isError = cents == null, shape = MaterialTheme.shapes.small, colors = fieldColors(),
@@ -272,7 +276,7 @@ fun TransactionDialog(
                 Text(date.label(), Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
             }
         }
-        OutlinedTextField(note, { note = it }, Modifier.fillMaxWidth(), label = { Text("Note (optional)") },
+        OutlinedTextField(note, { note = it }, Modifier.fillMaxWidth(), label = { Text("Note (optional)") }, keyboardOptions = TextKeyboard,
             shape = MaterialTheme.shapes.small, colors = fieldColors())
     }
 
@@ -352,7 +356,7 @@ fun RecurringDialog(
         },
         leading = onDelete?.let { { TextButton({ confirmDelete = true }) { Text("Delete", color = Expense) } } },
     ) {
-        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name (e.g. Netflix)") }, singleLine = true,
+        OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name (e.g. Netflix)") }, singleLine = true, keyboardOptions = TextKeyboard,
             shape = MaterialTheme.shapes.small, colors = fieldColors())
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Choice("Expense", !income, { income = false; categoryId = null }, Expense)
@@ -417,7 +421,7 @@ fun CurrencyDialog(current: String?, onPick: (String?) -> Unit, onDismiss: () ->
     }
 
     WalletDialog("Currency", onDismiss) {
-        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text("Search currencies") }, singleLine = true,
+        OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text("Search currencies") }, singleLine = true, keyboardOptions = TextKeyboard,
             shape = MaterialTheme.shapes.small, colors = fieldColors())
         if (query.isBlank()) {
             val device = java.text.NumberFormat.getCurrencyInstance().currency
