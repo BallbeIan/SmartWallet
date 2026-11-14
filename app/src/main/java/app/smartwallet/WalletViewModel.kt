@@ -16,8 +16,8 @@ import java.time.YearMonth
 import java.util.UUID
 
 val CategoryPalette = listOf(
-    0xFFE57373, 0xFF64B5F6, 0xFF81C784, 0xFFFFB74D, 0xFFBA68C8, 0xFF4DB6AC,
-    0xFFF06292, 0xFFA1887F, 0xFF7986CB, 0xFFAED581, 0xFFFF8A65, 0xFF90A4AE,
+    0xFFFF3B30, 0xFF007AFF, 0xFF34C759, 0xFFFF9500, 0xFFAF52DE, 0xFF30B0C7,
+    0xFFFF2D55, 0xFFA2845E, 0xFF5856D6, 0xFF00C7BE, 0xFFFFCC00, 0xFF8E8E93,
 )
 
 class WalletViewModel(app: Application) : AndroidViewModel(app) {

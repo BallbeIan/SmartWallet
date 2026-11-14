@@ -25,6 +25,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 
 ## Highlights
 
+- **Designed like an Apple app.** Big titles, rounded grouped lists, forms that slide up as sheets, a flat tab bar and green switches, in a light and a dark theme that can follow your phone.
 - **One total, any account.** The home screen shows the total across every account. Tap an account to look at just that one: its balance, its month, its recent activity.
 - **Fast logging.** Expense, Income and Transfer are one tap away, with categories, dates and notes. The dialogs fit on one screen and never open the keyboard until you ask.
 - **Budgets that warn you.** Set a monthly limit per category and watch the bar turn amber, then red.
@@ -49,9 +50,14 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
     <td><img src="docs/images/accounts.png" width="230" alt="Accounts"></td>
   </tr>
   <tr>
-    <td><img src="docs/images/add-expense.png" width="230" alt="Adding an expense"></td>
+    <td><img src="docs/images/add-expense.png" width="230" alt="Adding an expense in a sheet"></td>
     <td><img src="docs/images/scheduled.png" width="230" alt="Scheduled payments"></td>
     <td><img src="docs/images/month-end.png" width="230" alt="Month end settings"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/home-dark.png" width="230" alt="Home in the dark theme"></td>
+    <td><img src="docs/images/history-dark.png" width="230" alt="History in the dark theme"></td>
+    <td><img src="docs/images/add-expense-dark.png" width="230" alt="The add sheet in the dark theme"></td>
   </tr>
 </table>
 
@@ -119,7 +125,7 @@ There is **no internet permission**. See the merged list with `aapt2 dump permis
 - **Month end is derived data.** `computeMonthEnd` is a pure function from the real transactions to the entries that should exist; `reconcileMonthEnd` makes the database match it and writes nothing when it already does.
 - **Scheduled payments** become ordinary transactions on their due date, so budgets and reports pick them up with no special cases.
 - **The PIN is never stored**, only a salted PBKDF2 hash. While the app is locked its screens are not composed at all, so nothing behind the lock screen can be read.
-- Libraries: Jetpack Compose (Material 3), Room, WorkManager and AndroidX Biometric. Nothing else.
+- Libraries: Jetpack Compose (Material 3), Room, WorkManager and AndroidX Biometric. Nothing else. The Inter font is bundled, so nothing is fetched at run time.
 
 | Path | What it does |
 |---|---|
@@ -156,6 +162,10 @@ adb shell am start -n app.smartwallet.demo/app.smartwallet.MainActivity --ez dem
 ```
 
 The screenshots above were taken this way.
+
+## Credits
+
+The interface uses [Inter](https://github.com/rsms/inter), bundled in the app, under the SIL Open Font License ([`docs/licenses/Inter-OFL.txt`](docs/licenses/Inter-OFL.txt)).
 
 ## Contributing
 

@@ -4,15 +4,20 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.smartwallet.WalletViewModel
 import app.smartwallet.data.*
@@ -24,6 +29,7 @@ fun ReportsScreen(vm: WalletViewModel) {
     val categories by vm.categories.collectAsState()
     val txns by vm.transactions.collectAsState()
     val month by vm.month.collectAsState()
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
     val real = txns.filter { it.transferId == null }
     val byCat = real.filter { it.inMonth(month) && it.amountCents < 0 }
@@ -31,59 +37,70 @@ fun ReportsScreen(vm: WalletViewModel) {
         .entries.sortedByDescending { it.value }
     val total = byCat.sumOf { it.value }
     val catById = categories.associateBy { it.id }
-    val gray = Color(0xFF9E9E9E)
-    fun colorOf(id: Long?) = catById[id]?.let { Color(it.color) } ?: gray
+    fun colorOf(id: Long?) = catById[id]?.let { Color(it.color) } ?: Gray
+    val track = MaterialTheme.colorScheme.surfaceContainerHigh
 
-    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
+    Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp)) {
+        LargeTitle("Reports")
         MonthBar(month, vm::shiftMonth)
-        Text("Spending by category", Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.titleMedium)
-        if (total == 0L) {
-            Text("No expenses this month.", Modifier.padding(16.dp))
-        } else {
-            Box(Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                Canvas(Modifier.size(170.dp)) {
-                    val stroke = 22.dp.toPx()
-                    var start = -90f
-                    byCat.forEach { (id, v) ->
-                        val sweep = 360f * v / total
-                        drawArc(colorOf(id), start, sweep, false, Offset(stroke / 2, stroke / 2),
-                            Size(size.width - stroke, size.height - stroke), style = Stroke(stroke))
-                        start += sweep
+
+        SectionHeader("Spending by category")
+        Grouped {
+            if (total == 0L) {
+                Text("No expenses this month.", Modifier.padding(16.dp), color = muted)
+            } else {
+                Box(Modifier.fillMaxWidth().padding(vertical = 20.dp), contentAlignment = Alignment.Center) {
+                    Canvas(Modifier.size(176.dp)) {
+                        val stroke = 20.dp.toPx()
+                        val arcSize = Size(size.width - stroke, size.height - stroke)
+                        drawArc(track, 0f, 360f, false, Offset(stroke / 2, stroke / 2), arcSize, style = Stroke(stroke))
+                        var start = -90f
+                        byCat.forEach { (id, v) ->
+                            // A hair of gap between slices, like Apple's ring charts.
+                            val sweep = 360f * v / total
+                            drawArc(colorOf(id), start, (sweep - 1.5f).coerceAtLeast(0.5f), false, Offset(stroke / 2, stroke / 2), arcSize, style = Stroke(stroke, cap = StrokeCap.Butt))
+                            start += sweep
+                        }
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Spent", style = MaterialTheme.typography.bodySmall, color = muted)
+                        Text(Money.format(total), style = MaterialTheme.typography.titleLarge.merge(Num))
                     }
                 }
-                Text(Money.format(total), style = MaterialTheme.typography.titleMedium)
-            }
-            byCat.forEach { (id, v) ->
-                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(12.dp).background(colorOf(id)))
-                    Text(catById[id]?.name ?: "Uncategorized", Modifier.weight(1f).padding(start = 8.dp))
-                    Text("${Money.format(v)}  (${(100 * v / total)}%)")
+                byCat.forEach { (id, v) ->
+                    Hairline()
+                    ListRow(catById[id]?.name ?: "Uncategorized", leading = { Box(Modifier.size(12.dp).clip(CircleShape).background(colorOf(id))) },
+                        trailing = { Text("${Money.format(v)}  ${100 * v / total}%", style = MaterialTheme.typography.bodyMedium.merge(Num), color = muted) })
                 }
             }
         }
 
-        Text("Last 6 months", Modifier.padding(16.dp, 24.dp, 16.dp, 8.dp), style = MaterialTheme.typography.titleMedium)
+        SectionHeader("Last 6 months")
         val months = (5 downTo 0L).map { month.minusMonths(it) }
         val sums = months.map { m ->
             val inM = real.filter { it.inMonth(m) }
             inM.filter { it.amountCents > 0 }.sumOf { it.amountCents } to -inM.filter { it.amountCents < 0 }.sumOf { it.amountCents }
         }
         val max = (sums.maxOfOrNull { maxOf(it.first, it.second) } ?: 0L).coerceAtLeast(1L)
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(140.dp), verticalAlignment = Alignment.Bottom) {
-            sums.forEach { (inc, exp) ->
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.Bottom) {
-                    Box(Modifier.width(12.dp).height((140f * inc / max).dp).background(IncomeColor))
-                    Spacer(Modifier.width(2.dp))
-                    Box(Modifier.width(12.dp).height((140f * exp / max).dp).background(MaterialTheme.colorScheme.error))
+        Grouped {
+            Column(Modifier.padding(16.dp)) {
+                Row(Modifier.fillMaxWidth().height(140.dp), verticalAlignment = Alignment.Bottom) {
+                    sums.forEach { (inc, exp) ->
+                        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.Bottom) {
+                            Box(Modifier.width(11.dp).height((140f * inc / max).dp).clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)).background(IncomeText))
+                            Spacer(Modifier.width(3.dp))
+                            Box(Modifier.width(11.dp).height((140f * exp / max).dp).clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)).background(Expense))
+                        }
+                    }
+                }
+                Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    months.forEach { Text(it.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()), Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, color = muted, textAlign = TextAlign.Center) }
+                }
+                Row(Modifier.padding(top = 14.dp), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(9.dp).clip(CircleShape).background(IncomeText)); Text("Income", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.bodySmall, color = muted) }
+                    Row(verticalAlignment = Alignment.CenterVertically) { Box(Modifier.size(9.dp).clip(CircleShape).background(Expense)); Text("Expenses", Modifier.padding(start = 6.dp), style = MaterialTheme.typography.bodySmall, color = muted) }
                 }
             }
-        }
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
-            months.forEach { Text(it.month.getDisplayName(TextStyle.SHORT, Locale.getDefault()), Modifier.weight(1f), style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center) }
-        }
-        Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("■ Income", color = IncomeColor, style = MaterialTheme.typography.labelMedium)
-            Text("■ Expenses", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
         }
     }
 }

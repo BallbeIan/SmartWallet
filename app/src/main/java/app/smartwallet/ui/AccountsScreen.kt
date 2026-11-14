@@ -1,18 +1,13 @@
 package app.smartwallet.ui
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import app.smartwallet.WalletViewModel
 import app.smartwallet.data.Account
@@ -26,50 +21,36 @@ fun AccountsScreen(vm: WalletViewModel) {
     var editing by remember { mutableStateOf<Account?>(null) }
     var adding by remember { mutableStateOf(false) }
     var transferring by remember { mutableStateOf(false) }
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val badgeColors = listOf(Blue, Green, Amber, Indigo, Teal, Purple)
 
-    Box(Modifier.fillMaxSize()) {
-        LazyColumn(contentPadding = PaddingValues(bottom = 160.dp)) {
+    Column {
+        LargeTitle("Accounts") {
+            if (accounts.size > 1) IconButton({ transferring = true }) { Icon(Icons.Rounded.SwapHoriz, "Transfer", tint = Green, modifier = Modifier.size(28.dp)) }
+            IconButton({ adding = true }) { Icon(Icons.Rounded.Add, "Add account", tint = Green, modifier = Modifier.size(28.dp)) }
+        }
+        LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
             item {
-                Column(Modifier.padding(20.dp, 28.dp, 20.dp, 20.dp)) {
-                    Text("NET WORTH", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(Money.format(balances.values.sum()), style = MaterialTheme.typography.displaySmall.merge(Num))
-                    Text("${accounts.size} account${if (accounts.size == 1) "" else "s"}", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+                    Text("Net worth", style = MaterialTheme.typography.bodyMedium, color = muted)
+                    Text(Money.format(balances.values.sum()), style = MaterialTheme.typography.displaySmall.merge(Num), maxLines = 1)
                 }
             }
-            item {
-                Text("ACCOUNTS", Modifier.padding(20.dp, 8.dp, 20.dp, 8.dp), style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+            item { SectionHeader("${accounts.size} account${if (accounts.size == 1) "" else "s"}") }
             if (accounts.isEmpty()) item {
-                Text("Add your first account (cash, bank, card…) with the + button.", Modifier.padding(horizontal = 20.dp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Add your first account (cash, bank, card…) with the + button.", Modifier.padding(horizontal = 20.dp), color = muted)
             } else item {
-                Surface(Modifier.padding(horizontal = 16.dp).fillMaxWidth(), shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainer) {
-                    Column {
-                        accounts.forEachIndexed { i, a ->
-                            if (i > 0) HorizontalDivider(Modifier.padding(start = 64.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                            val b = balances[a.id] ?: 0L
-                            Row(Modifier.fillMaxWidth().clickable { editing = a }.padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Box(Modifier.size(32.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
-                                    Text(a.name.take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer, style = MaterialTheme.typography.titleMedium)
-                                }
-                                Text(a.name, Modifier.weight(1f).padding(start = 16.dp), style = MaterialTheme.typography.bodyLarge)
-                                Text(Money.format(b), style = MaterialTheme.typography.bodyLarge.merge(Num),
-                                    color = if (b < 0) Expense else MaterialTheme.colorScheme.onSurface)
-                            }
-                        }
+                Grouped {
+                    accounts.forEachIndexed { i, a ->
+                        if (i > 0) Hairline(64.dp)
+                        val b = balances[a.id] ?: 0L
+                        ListRow(a.name, onClick = { editing = a }, leading = { LetterBadge(a.name, badgeColors[i % badgeColors.size]) },
+                            trailing = {
+                                Text(Money.format(b), style = MaterialTheme.typography.bodyLarge.merge(Num), color = if (b < 0) Expense else MaterialTheme.colorScheme.onSurface)
+                                Chevron()
+                            })
                     }
                 }
-            }
-        }
-        Column(Modifier.align(Alignment.BottomEnd).padding(16.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            if (accounts.size > 1) SmallFloatingActionButton(onClick = { transferring = true }, containerColor = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                Icon(Icons.Filled.SwapHoriz, "Transfer")
-            }
-            FloatingActionButton(onClick = { adding = true }, containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
-                Icon(Icons.Filled.Add, "Add account")
             }
         }
     }

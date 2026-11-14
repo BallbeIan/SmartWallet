@@ -3,7 +3,6 @@ package app.smartwallet.ui
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -11,9 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,45 +38,17 @@ private const val MAIN = 0
 private const val MONTH_END = 1
 private const val CATEGORIES = 2
 
-@Composable
-private fun GroupLabel(text: String) =
-    Text(text.uppercase(), Modifier.padding(start = 8.dp, top = 8.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-
-@Composable
-private fun Group(content: @Composable ColumnScope.() -> Unit) = Surface(
-    Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer,
-    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-) { Column(content = content) }
-
-@Composable
-private fun Divider() = HorizontalDivider(Modifier.padding(start = 72.dp), color = MaterialTheme.colorScheme.outlineVariant)
-
-/** One line in a group: badge, title, optional value line, then a chevron or a custom control. */
+/** One settings line: a coloured symbol, a title with an optional value, then a chevron or a control. */
 @Composable
 private fun Row(
     icon: ImageVector, tint: Color, title: String, subtitle: String? = null,
     trailing: (@Composable () -> Unit)? = null,
     // Last on purpose: a trailing lambda at a call site is the tap action, not the trailing control.
     onClick: (() -> Unit)? = null,
-) {
-    Row(
-        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconBadge(icon, tint, 40)
-        Column(Modifier.weight(1f).padding(horizontal = 14.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
-        }
-        when {
-            trailing != null -> trailing()
-            onClick != null -> Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}
+) = ListRow(title, subtitle = subtitle, onClick = onClick, leading = { Squircle(icon, tint) }, trailing = trailing ?: if (onClick != null) ({ Chevron() }) else null)
 
 @Composable
-private fun Card(title: String, content: @Composable ColumnScope.() -> Unit) = Group {
+private fun Card(title: String, content: @Composable ColumnScope.() -> Unit) = Grouped {
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SectionLabel(title)
         content()
@@ -125,88 +94,87 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
     val leadLabel = { d: Int -> when (d) { 0 -> "Same day"; 1 -> "1 day before"; else -> "$d days before" } }
 
     Column {
-        Row(Modifier.fillMaxWidth().padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton({ if (page == MAIN) onClose() else page = MAIN }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-            Text(when (page) { MONTH_END -> "Month end"; CATEGORIES -> "Categories"; else -> "Settings" }, Modifier.weight(1f), style = MaterialTheme.typography.titleLarge)
-            if (page == CATEGORIES) TextButton({ addingCategory = true }) { Text("Add", color = Green) }
+        BackButton(if (page == MAIN) "Home" else "Settings") { if (page == MAIN) onClose() else page = MAIN }
+        LargeTitle(when (page) { MONTH_END -> "Month end"; CATEGORIES -> "Categories"; else -> "Settings" }) {
+            if (page == CATEGORIES) TextButton({ addingCategory = true }) { Text("Add", color = Green, style = MaterialTheme.typography.bodyLarge) }
         }
 
         when (page) {
-            MAIN -> Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                GroupLabel("General")
-                Group {
+            MAIN -> Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(0.dp)) {
+                SectionHeader("General")
+                Grouped {
                     val c = Money.currency()
-                    Row(Icons.Filled.Palette, Blue, "Theme", AppTheme.mode.label) { pickingTheme = true }
-                    Divider()
-                    Row(Icons.Filled.AttachMoney, Green, "Currency", "${c.currencyCode} · ${c.symbol}${if (Money.code == null) " (device)" else ""}") { pickingCurrency = true }
-                    Divider()
-                    Row(Icons.Filled.Notifications, Amber, "Payment reminders", if (remindersOn) leadLabel(leadDays) else "Off",
+                    Row(Icons.Rounded.Palette, Blue, "Theme", AppTheme.mode.label) { pickingTheme = true }
+                    Hairline(58.dp)
+                    Row(Icons.Rounded.AttachMoney, Green, "Currency", "${c.currencyCode} · ${c.symbol}${if (Money.code == null) " (device)" else ""}") { pickingCurrency = true }
+                    Hairline(58.dp)
+                    Row(Icons.Rounded.Notifications, Amber, "Payment reminders", if (remindersOn) leadLabel(leadDays) else "Off",
                         onClick = if (remindersOn) ({ pickingLead = true }) else null,
                         trailing = {
-                            Switch(remindersOn, { on ->
+                            AppSwitch(remindersOn, { on ->
                                 if (!on) { Reminders.setEnabled(ctx, false); remindersOn = false }
                                 else if (Reminders.hasPermission(ctx)) { Reminders.setEnabled(ctx, true); remindersOn = true }
                                 else { AppLock.ignoreNextStop(); askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS) }
                             })
                         })
-                    Divider()
+                    Hairline(58.dp)
                     val spending = accounts.firstOrNull { it.id == rules.spending }
                     val parts = listOfNotNull(
                         accounts.firstOrNull { it.id == rules.surplusTarget }?.takeIf { rules.moveSurplus }?.let { "leftover → ${it.name}" },
                         accounts.firstOrNull { it.id == rules.deficitSource }?.takeIf { rules.coverDeficit }?.let { "overspend ← ${it.name}" },
                     )
-                    Row(Icons.Filled.CalendarMonth, Blue, "Month end",
+                    Row(Icons.Rounded.CalendarMonth, Blue, "Month end",
                         if (!rules.enabled) "Off" else if (spending == null) "Choose a spending account" else "${spending.name}: ${parts.joinToString(", ").ifEmpty { "leave as is" }}",
-                        trailing = { Switch(rules.enabled, { on -> update(rules.copy(enabled = on)); if (on && rules.spending == null) page = MONTH_END }) }) { page = MONTH_END }
+                        trailing = { AppSwitch(rules.enabled, { on -> update(rules.copy(enabled = on)); if (on && rules.spending == null) page = MONTH_END }) }) { page = MONTH_END }
                 }
 
-                GroupLabel("Security")
-                Group {
-                    Row(Icons.Filled.Lock, Green, "App lock", if (lockOn) "PIN${if (bioOn) " and biometrics" else ""}" else "Off",
-                        trailing = { Switch(lockOn, { on -> if (on) settingPin = true else disablingLock = true }) })
+                SectionHeader("Security")
+                Grouped {
+                    Row(Icons.Rounded.Lock, Green, "App lock", if (lockOn) "PIN${if (bioOn) " and biometrics" else ""}" else "Off",
+                        trailing = { AppSwitch(lockOn, { on -> if (on) settingPin = true else disablingLock = true }) })
                     if (lockOn) {
-                        Divider()
-                        Row(Icons.Filled.Pin, Blue, "Change PIN") { changingPin = true }
-                        Divider()
+                        Hairline(58.dp)
+                        Row(Icons.Rounded.Pin, Blue, "Change PIN") { changingPin = true }
+                        Hairline(58.dp)
                         val problem = biometricsProblem(activity)
-                        Row(Icons.Filled.Fingerprint, Teal, "Unlock with biometrics", if (problem == null) "Fingerprint or face" else problem,
+                        Row(Icons.Rounded.Fingerprint, Teal, "Unlock with biometrics", if (problem == null) "Fingerprint or face" else problem,
                             trailing = {
-                                Switch(bioOn, { on ->
+                                AppSwitch(bioOn, { on ->
                                     if (!on) { AppLock.setBiometrics(ctx, false); bioOn = false }
                                     else showBiometricPrompt(activity, "Confirm it's you") { AppLock.setBiometrics(ctx, true); bioOn = true }
                                 }, enabled = problem == null)
                             })
-                        Divider()
-                        Row(Icons.Filled.Timer, Amber, "Lock", timeoutLabel(timeoutMs)) { pickingTimeout = true }
+                        Hairline(58.dp)
+                        Row(Icons.Rounded.Timer, Amber, "Lock", timeoutLabel(timeoutMs)) { pickingTimeout = true }
                     }
                 }
 
-                GroupLabel("Data")
-                Group {
-                    Row(Icons.Filled.Category, Teal, "Categories", "${categories.size} categories") { page = CATEGORIES }
-                    Divider()
-                    Row(Icons.Filled.FileUpload, Blue, "Export CSV", "Save all transactions to a file") { run { AppLock.ignoreNextStop(); export.launch("smartwallet-${LocalDate.now()}.csv") } }
-                    Divider()
-                    Row(Icons.Filled.FileDownload, Blue, "Import CSV", "date, account, category, amount, note, transfer_id") { run { AppLock.ignoreNextStop(); import.launch(arrayOf("*/*")) } }
+                SectionHeader("Data")
+                Grouped {
+                    Row(Icons.Rounded.Category, Teal, "Categories", "${categories.size} categories") { page = CATEGORIES }
+                    Hairline(58.dp)
+                    Row(Icons.Rounded.FileUpload, Blue, "Export CSV", "Save all transactions to a file") { run { AppLock.ignoreNextStop(); export.launch("smartwallet-${LocalDate.now()}.csv") } }
+                    Hairline(58.dp)
+                    Row(Icons.Rounded.FileDownload, Blue, "Import CSV", "Add transactions from a file") { run { AppLock.ignoreNextStop(); import.launch(arrayOf("*/*")) } }
                 }
 
                 if (BuildConfig.DEBUG) {
-                    GroupLabel("Developer")
-                    Group {
-                        Row(Icons.Filled.BugReport, Amber, "Load demo data", "Sample accounts, transactions and budgets", onClick = vm::loadDemoData)
-                        Divider()
-                        Row(Icons.Filled.DeleteForever, Expense, "Clear all data", "Removes accounts, transactions and budgets") { clearing = true }
+                    SectionHeader("Developer")
+                    Grouped {
+                        Row(Icons.Rounded.BugReport, Amber, "Load demo data", "Sample accounts, transactions and budgets", onClick = vm::loadDemoData)
+                        Hairline(58.dp)
+                        Row(Icons.Rounded.DeleteForever, Expense, "Clear all data", "Removes accounts, transactions and budgets") { clearing = true }
                     }
                 }
             }
 
-            MONTH_END -> Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            MONTH_END -> Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 val muted = MaterialTheme.colorScheme.onSurfaceVariant
                 Text("Choose the account you spend from. When a month ends, its balance on the last day is handled automatically.",
                     Modifier.padding(horizontal = 8.dp), style = MaterialTheme.typography.bodySmall, color = muted)
-                Group {
-                    Row(Icons.Filled.CalendarMonth, Blue, "Apply at month end", if (rules.enabled) "On" else "Off",
-                        trailing = { Switch(rules.enabled, { update(rules.copy(enabled = it)) }) })
+                Grouped {
+                    Row(Icons.Rounded.CalendarMonth, Blue, "Apply at month end", if (rules.enabled) "On" else "Off",
+                        trailing = { AppSwitch(rules.enabled, { update(rules.copy(enabled = it)) }) })
                 }
                 if (rules.enabled) Card("Spending account") {
                     ChoiceGroup(listOf<Account?>(null) + accounts, { it?.id == rules.spending }, { it?.name ?: "None" }) { update(rules.copy(spending = it?.id)) }
@@ -219,8 +187,7 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
                             SectionLabel("Move it to")
                             ChoiceGroup(others, { it.id == rules.surplusTarget }, { it.name }) { update(rules.copy(surplusTarget = it.id)) }
                             SectionLabel("Keep in the account")
-                            Surface({ pickingKeep = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small, color = Color.Transparent,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+                            Surface({ pickingKeep = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                                 Text(if (rules.keepCents > 0) Money.format(rules.keepCents) else "Nothing (move everything)", Modifier.padding(14.dp))
                             }
                         }
@@ -237,19 +204,16 @@ fun SettingsScreen(vm: WalletViewModel, onClose: () -> Unit) {
                 }
             }
 
-            else -> Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            else -> Column(Modifier.verticalScroll(rememberScrollState()).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Expense" to false, "Income" to true).forEach { (label, income) ->
                     val list = categories.filter { it.isIncome == income }
                     if (list.isNotEmpty()) {
-                        GroupLabel(label)
-                        Group {
+                        SectionHeader(label)
+                        Grouped {
                             list.forEachIndexed { i, c ->
-                                if (i > 0) Divider()
-                                Row(Modifier.fillMaxWidth().padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Box(Modifier.size(12.dp).clip(CircleShape).background(Color(c.color)))
-                                    Text(c.name, Modifier.weight(1f).padding(start = 14.dp), style = MaterialTheme.typography.titleMedium)
-                                    IconButton({ deleting = c }) { Icon(Icons.Filled.Delete, "Delete ${c.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-                                }
+                                if (i > 0) Hairline(16.dp)
+                                ListRow(c.name, leading = { Box(Modifier.size(12.dp).clip(CircleShape).background(Color(c.color))) },
+                                    trailing = { IconButton({ deleting = c }) { Icon(Icons.Rounded.Delete, "Delete ${c.name}", tint = MaterialTheme.colorScheme.onSurfaceVariant) } })
                             }
                         }
                     }

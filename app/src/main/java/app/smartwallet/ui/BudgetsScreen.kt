@@ -3,10 +3,10 @@ package app.smartwallet.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import app.smartwallet.WalletViewModel
 import app.smartwallet.data.*
@@ -26,42 +26,40 @@ fun BudgetsScreen(vm: WalletViewModel) {
     val expenseCats = categories.filter { !it.isIncome }.sortedByDescending { (spent[it.id] ?: 0L) + if (it.id in limits) 1 else 0 }
     val totalLimit = expenseCats.sumOf { limits[it.id] ?: 0L }
     val totalSpent = expenseCats.filter { it.id in limits }.sumOf { spent[it.id] ?: 0L }
-
-    @Composable
-    fun Bar(spentC: Long, limit: Long) {
-        val ratio = spentC.toFloat() / limit
-        LinearProgressIndicator(
-            progress = { ratio.coerceIn(0f, 1f) },
-            modifier = Modifier.fillMaxWidth().height(4.dp),
-            color = when { ratio > 1f -> Expense; ratio > 0.85f -> Amber; else -> Green },
-            trackColor = MaterialTheme.colorScheme.outlineVariant,
-            gapSize = 0.dp, drawStopIndicator = {},
-        )
-    }
+    fun barColor(ratio: Float) = when { ratio > 1f -> Expense; ratio > 0.85f -> Amber; else -> Green }
 
     Column {
+        LargeTitle("Budgets")
         MonthBar(month, vm::shiftMonth)
-        LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+        LazyColumn(contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp)) {
             item {
-                Column(Modifier.padding(20.dp, 8.dp, 20.dp, 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("BUDGETED SPENDING", style = MaterialTheme.typography.labelSmall, color = muted)
-                    Text("${Money.format(totalSpent)} / ${Money.format(totalLimit)}", style = MaterialTheme.typography.headlineMedium.merge(Num))
-                    if (totalLimit > 0) Bar(totalSpent, totalLimit)
-                }
-            }
-            item { Text("TAP A CATEGORY TO SET ITS MONTHLY LIMIT", Modifier.padding(20.dp, 0.dp, 20.dp, 4.dp), style = MaterialTheme.typography.labelSmall, color = muted) }
-            items(expenseCats, key = { it.id }) { c ->
-                val limit = limits[c.id]
-                val s = spent[c.id] ?: 0L
-                Column(Modifier.fillMaxWidth().clickable { editing = c }.padding(horizontal = 20.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row {
-                        Text(c.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-                        Text(if (limit != null) "${Money.format(s)} / ${Money.format(limit)}" else Money.format(s),
-                            style = MaterialTheme.typography.bodyMedium.merge(Num), color = if (limit != null && s > limit) Expense else muted)
+                Grouped {
+                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Budgeted spending", style = MaterialTheme.typography.bodyMedium, color = muted)
+                        Text("${Money.format(totalSpent)} of ${Money.format(totalLimit)}", style = MaterialTheme.typography.headlineMedium.merge(Num))
+                        if (totalLimit > 0) ProgressBar(totalSpent.toFloat() / totalLimit, barColor(totalSpent.toFloat() / totalLimit))
                     }
-                    if (limit != null) Bar(s, limit)
                 }
             }
+            item { SectionHeader("Categories") }
+            item {
+                Grouped {
+                    expenseCats.forEachIndexed { i, c ->
+                        if (i > 0) Hairline(16.dp)
+                        val limit = limits[c.id]
+                        val s = spent[c.id] ?: 0L
+                        Column(Modifier.fillMaxWidth().clickable { editing = c }.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row {
+                                Text(c.name, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+                                Text(if (limit != null) "${Money.format(s)} / ${Money.format(limit)}" else Money.format(s),
+                                    style = MaterialTheme.typography.bodyMedium.merge(Num), color = if (limit != null && s > limit) Expense else muted)
+                            }
+                            if (limit != null) ProgressBar(s.toFloat() / limit, barColor(s.toFloat() / limit), height = 5.dp)
+                        }
+                    }
+                }
+            }
+            item { Text("Tap a category to set its monthly limit.", Modifier.padding(horizontal = 20.dp, vertical = 8.dp), style = MaterialTheme.typography.bodySmall, color = muted) }
         }
     }
 

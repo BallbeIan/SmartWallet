@@ -10,16 +10,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.rounded.CalendarMonth
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.graphics.RectangleShape
 import app.smartwallet.data.*
 import java.text.NumberFormat
 import java.time.Instant
@@ -38,10 +39,19 @@ import kotlin.math.abs
 /** Every free-text field starts with a capital letter. Numeric and PIN fields keep their own keyboards. */
 internal val TextKeyboard = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences)
 
-val ExpenseRed = Color(0xFFE8365D)
-val IncomeGreen = Color(0xFF14A86F)
+// Kept as names for the call sites; they are now simply the system red and green.
+val ExpenseRed: Color get() = Expense
+val IncomeGreen: Color get() = Green
 
-/** The one dialog shell: navy card, border, scrolling body, Cancel + a filled confirm button. */
+/** Page colours inside a sheet: iOS shows white (or dark grey) cards on a light grey (or dark) sheet. */
+val SheetBg: Color get() = if (AppTheme.isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
+val SheetCard: Color get() = if (AppTheme.isDark) Color(0xFF2C2C2E) else Color.White
+
+/**
+ * The one form shell, shaped like an iOS sheet: a grabber, a bar with Cancel on the left, the title in the middle and
+ * the confirm action on the right, then the form. [leading] (usually Delete) sits at the bottom as its own row.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletDialog(
     title: String,
@@ -54,34 +64,24 @@ fun WalletDialog(
     leading: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false)) {
-        Surface(
-            // Insets are not reliable inside a dialog window, so cap the height explicitly: the card always ends above the
-            // gesture bar and the body scrolls if it must, with Cancel/Save pinned below it.
-            Modifier.padding(horizontal = 14.dp, vertical = 12.dp).widthIn(max = 440.dp).fillMaxWidth()
-                .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.86f),
-            shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceContainer,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) {
-            Column(Modifier.padding(start = 20.dp, end = 20.dp, top = 18.dp, bottom = 8.dp)) {
-                Text(title, style = MaterialTheme.typography.titleLarge)
-                Column(Modifier.weight(1f, fill = false).padding(vertical = 12.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp), content = content)
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    leading?.invoke()
-                    Spacer(Modifier.weight(1f))
-                    TextButton(onDismiss) { Text(dismissText, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    if (onConfirm != null) {
-                        Button(
-                            onConfirm, Modifier.padding(start = 4.dp), enabled = confirmEnabled, shape = CircleShape,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = confirmColor,
-                                contentColor = if (confirmColor == Green) MaterialTheme.colorScheme.onPrimary else Color.White,
-                                disabledContainerColor = MaterialTheme.colorScheme.outlineVariant,
-                            ),
-                        ) { Text(confirmText, fontWeight = FontWeight.SemiBold) }
-                    }
-                }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = SheetBg, shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        dragHandle = { Box(Modifier.padding(top = 8.dp, bottom = 2.dp).size(width = 36.dp, height = 5.dp).clip(CircleShape).background(MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))) },
+    ) {
+        Column(Modifier.navigationBarsPadding().imePadding()) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onDismiss, Modifier.widthIn(min = 80.dp)) { Text(dismissText, color = Green, style = MaterialTheme.typography.bodyLarge) }
+                Text(title, Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+                if (onConfirm != null) TextButton(onConfirm, Modifier.widthIn(min = 80.dp), enabled = confirmEnabled) {
+                    Text(confirmText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold,
+                        color = if (confirmEnabled) confirmColor else MaterialTheme.colorScheme.outline)
+                } else Spacer(Modifier.width(80.dp))
+            }
+            Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp), content = content)
+            if (leading != null) Surface(Modifier.padding(horizontal = 16.dp).padding(bottom = 20.dp).fillMaxWidth(), shape = MaterialTheme.shapes.small, color = SheetCard) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { leading() }
             }
         }
     }
@@ -89,26 +89,24 @@ fun WalletDialog(
 
 @Composable
 fun SectionLabel(text: String) =
-    Text(text.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(text.uppercase(), Modifier.padding(start = 4.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+/** Filled, borderless text fields on the sheet's white cards. */
 @Composable
 internal fun fieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = Green, unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-    focusedLabelColor = Green, cursorColor = Green, errorBorderColor = Expense,
+    focusedContainerColor = SheetCard, unfocusedContainerColor = SheetCard, errorContainerColor = SheetCard,
+    focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent, errorBorderColor = Expense,
+    focusedLabelColor = Green, cursorColor = Green,
 )
 
-/** A pill used for picking accounts, categories and kinds. */
+/** A capsule for picking accounts, categories and options: filled when chosen, soft grey otherwise. */
 @Composable
 fun Choice(label: String, selected: Boolean, onClick: () -> Unit, color: Color = Green, dot: Color? = null) {
-    Surface(
-        onClick, shape = CircleShape,
-        color = if (selected) color.copy(alpha = 0.18f) else Color.Transparent,
-        border = BorderStroke(1.dp, if (selected) color else MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Row(Modifier.padding(horizontal = 14.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Surface(onClick, shape = CircleShape, color = if (selected) color else MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
             if (dot != null) Box(Modifier.padding(end = 8.dp).size(8.dp).clip(CircleShape).background(dot))
             Text(label, style = MaterialTheme.typography.bodyMedium, maxLines = 1,
-                color = if (selected) color else MaterialTheme.colorScheme.onSurface, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
         }
     }
 }
@@ -117,10 +115,17 @@ fun Choice(label: String, selected: Boolean, onClick: () -> Unit, color: Color =
 @Composable
 internal fun <T> ChoiceGroup(items: List<T>, isSelected: (T) -> Boolean, label: (T) -> String, color: Color = Green,
                             dot: (T) -> Color? = { null }, onSelect: (T) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items.forEach { Choice(label(it), isSelected(it), { onSelect(it) }, color, dot(it)) }
     }
 }
+
+/** A tappable white row inside a sheet: a value on the left, an optional icon on the right. */
+@Composable
+internal fun FormRow(onClick: () -> Unit, content: @Composable RowScope.() -> Unit) =
+    Surface(onClick, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small, color = SheetCard) {
+        Row(Modifier.padding(horizontal = 14.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically, content = content)
+    }
 
 /** Categories collapse to one row showing the current pick; tapping opens the full list and picking one closes it again. */
 @Composable
@@ -129,14 +134,11 @@ internal fun CategoryPicker(categories: List<Category>, selectedId: Long?, onSel
     val selected = categories.firstOrNull { it.id == selectedId }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         SectionLabel("Category")
-        Surface({ open = !open }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small, color = Color.Transparent,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (selected != null) Box(Modifier.padding(end = 10.dp).size(10.dp).clip(CircleShape).background(Color(selected.color)))
-                Text(selected?.name ?: "No category", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge,
-                    color = if (selected == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
-                Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, if (open) "Collapse" else "Expand", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        FormRow({ open = !open }) {
+            if (selected != null) Box(Modifier.padding(end = 10.dp).size(10.dp).clip(CircleShape).background(Color(selected.color)))
+            Text(selected?.name ?: "No category", Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge,
+                color = if (selected == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface)
+            Icon(if (open) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore, if (open) "Collapse" else "Expand", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         AnimatedVisibility(open) {
             ChoiceGroup(categories, { it.id == selectedId }, { it.name }, Green, dot = { Color(it.color) }) {
@@ -154,10 +156,9 @@ internal fun AmountField(value: String, onChange: (String) -> Unit, color: Color
         textStyle = MaterialTheme.typography.titleLarge.merge(Num).copy(textAlign = TextAlign.Center, color = color),
         placeholder = { Text("0.00", Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
             style = MaterialTheme.typography.titleLarge.merge(Num), color = MaterialTheme.colorScheme.outline) },
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = MaterialTheme.shapes.medium,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), shape = MaterialTheme.shapes.small,
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh, unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            errorContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            focusedContainerColor = SheetCard, unfocusedContainerColor = SheetCard, errorContainerColor = SheetCard,
             focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent, errorIndicatorColor = Color.Transparent,
             cursorColor = color, errorCursorColor = Expense,
         ),
@@ -166,10 +167,26 @@ internal fun AmountField(value: String, onChange: (String) -> Unit, color: Color
 
 internal fun currencySymbol(): String = Money.symbol()
 
+/** An iOS-style alert: centred title and message, two buttons split by hairlines. */
 @Composable
 fun ConfirmDialog(title: String, body: String, confirm: String = "Delete", onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    WalletDialog(title, onDismiss, confirm, confirmColor = ExpenseRed, onConfirm = { onConfirm(); onDismiss() }) {
-        Text(body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Dialog(onDismiss, DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.width(284.dp), shape = RoundedCornerShape(18.dp), color = if (AppTheme.isDark) Color(0xFF2C2C2E) else Color(0xFFF9F9F9)) {
+            Column {
+                Column(Modifier.padding(horizontal = 20.dp, vertical = 22.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+                    Text(body, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                HorizontalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                Row(Modifier.height(IntrinsicSize.Min)) {
+                    TextButton(onDismiss, Modifier.weight(1f).height(48.dp), shape = RectangleShape) { Text("Cancel", color = Green, style = MaterialTheme.typography.bodyLarge) }
+                    VerticalDivider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
+                    TextButton({ onConfirm(); onDismiss() }, Modifier.weight(1f).height(48.dp), shape = RectangleShape) {
+                        Text(confirm, color = Expense, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -237,16 +254,17 @@ fun TransactionDialog(
         leading = onDelete?.let { { TextButton({ onDelete(); onDismiss() }) { Text("Delete", color = Expense) } } },
     ) {
         if (initial == null) {
-            Row(Modifier.fillMaxWidth().clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(4.dp)) {
+            // iOS segmented control: a grey track with a white thumb under the chosen option.
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(3.dp)) {
                 kinds.forEachIndexed { i, l ->
                     val on = kind == i
                     Box(
-                        Modifier.weight(1f).clip(CircleShape).background(if (on) listOf(ExpenseRed, IncomeGreen, Blue)[i] else Color.Transparent)
-                            .clickable { kind = i; categoryId = null }.padding(vertical = 9.dp),
+                        Modifier.weight(1f).clip(RoundedCornerShape(8.dp)).background(if (on) (if (AppTheme.isDark) Color(0xFF636366) else Color.White) else Color.Transparent)
+                            .clickable { kind = i; categoryId = null }.padding(vertical = 8.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(l, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
-                            color = if (on) Color.White else MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(l, style = MaterialTheme.typography.bodyMedium, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -267,14 +285,9 @@ fun TransactionDialog(
         } else {
             CategoryPicker(shown, categoryId) { categoryId = it }
         }
-        Surface(
-            { pickDate = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small, color = Color.Transparent,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        ) {
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Filled.CalendarMonth, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(date.label(), Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
-            }
+        FormRow({ pickDate = true }) {
+            Icon(Icons.Rounded.CalendarMonth, null, tint = Green)
+            Text(date.label(), Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
         }
         OutlinedTextField(note, { note = it }, Modifier.fillMaxWidth(), label = { Text("Note (optional)") }, keyboardOptions = TextKeyboard,
             shape = MaterialTheme.shapes.small, colors = fieldColors())
@@ -377,12 +390,9 @@ fun RecurringDialog(
         CategoryPicker(shown, categoryId) { categoryId = it }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             SectionLabel("Next payment")
-            Surface({ pickDate = true }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small, color = Color.Transparent,
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-                Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.CalendarMonth, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(date.label(), Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
-                }
+            FormRow({ pickDate = true }) {
+                Icon(Icons.Rounded.CalendarMonth, null, tint = Green)
+                Text(date.label(), Modifier.padding(start = 12.dp), style = MaterialTheme.typography.bodyLarge)
             }
             if (date.isBefore(LocalDate.now())) Text("A payment dated in the past is added to History right away.", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -406,28 +416,29 @@ fun CurrencyDialog(current: String?, onPick: (String?) -> Unit, onDismiss: () ->
 
     @Composable
     fun Row(code: String?, title: String, subtitle: String, symbol: String) {
-        val on = code == current
-        Surface({ onPick(code); onDismiss() }, Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small,
-            color = if (on) Green.copy(alpha = 0.18f) else Color.Transparent,
-            border = BorderStroke(1.dp, if (on) Green else MaterialTheme.colorScheme.outlineVariant)) {
-            Row(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, color = if (on) Green else MaterialTheme.colorScheme.onSurface)
-                    Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                }
-                Text(symbol, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.fillMaxWidth().clickable { onPick(code); onDismiss() }.padding(horizontal = 14.dp, vertical = 11.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.bodyLarge)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
+            Text(symbol, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (code == current) Icon(Icons.Rounded.Check, "Selected", tint = Green, modifier = Modifier.padding(start = 10.dp))
         }
     }
 
     WalletDialog("Currency", onDismiss) {
         OutlinedTextField(query, { query = it }, Modifier.fillMaxWidth(), label = { Text("Search currencies") }, singleLine = true, keyboardOptions = TextKeyboard,
             shape = MaterialTheme.shapes.small, colors = fieldColors())
-        if (query.isBlank()) {
-            val device = java.text.NumberFormat.getCurrencyInstance().currency
-            Row(null, "Device default", device?.let { "${it.currencyCode} · ${it.displayName}" } ?: "", device?.symbol ?: "")
+        Surface(Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small, color = SheetCard) {
+            Column {
+                if (query.isBlank()) {
+                    val device = java.text.NumberFormat.getCurrencyInstance().currency
+                    Row(null, "Device default", device?.let { "${it.currencyCode} · ${it.displayName}" } ?: "", device?.symbol ?: "")
+                    Hairline(14.dp)
+                }
+                shown.forEachIndexed { i, c -> if (i > 0) Hairline(14.dp); Row(c.currencyCode, c.currencyCode, c.displayName, c.symbol) }
+            }
         }
-        shown.forEach { Row(it.currencyCode, it.currencyCode, it.displayName, it.symbol) }
         if (shown.isEmpty()) Text("No match.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         else if (query.isBlank()) Text("Search to find any other currency.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }

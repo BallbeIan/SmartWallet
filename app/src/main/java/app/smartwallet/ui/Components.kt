@@ -3,8 +3,8 @@ package app.smartwallet.ui
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,17 +16,18 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
-val IncomeColor: Color get() = Green
+val IncomeColor: Color get() = IncomeText
 
 fun YearMonth.label(): String = format(DateTimeFormatter.ofPattern("LLLL yyyy"))
+fun java.time.LocalDate.shortLabel(): String = format(DateTimeFormatter.ofPattern("MMM d"))
 fun java.time.LocalDate.label(): String = format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
 
 @Composable
 fun MonthBar(month: YearMonth, onShift: (Long) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        IconButton(onClick = { onShift(-1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, "Previous month") }
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = { onShift(-1) }) { Icon(Icons.Rounded.ChevronLeft, "Previous month", tint = Green) }
         Text(month.label(), Modifier.weight(1f), textAlign = TextAlign.Center, style = MaterialTheme.typography.titleMedium)
-        IconButton(onClick = { onShift(1) }) { Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, "Next month") }
+        IconButton(onClick = { onShift(1) }) { Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, "Next month", tint = Green) }
     }
 }
 
