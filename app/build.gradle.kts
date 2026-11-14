@@ -19,11 +19,11 @@ android {
 
     defaultConfig {
         // The Play Store id. It is permanent once an app is uploaded, and differs from the code namespace on purpose.
-        applicationId = "io.github.ballbeian.smartwallet"
+        applicationId = "app.smartwallet.expensetracker"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "2.1"
+        versionCode = 8
+        versionName = "2.2"
     }
 
     signingConfigs {
