@@ -17,22 +17,7 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 
 **[Download the latest APK](https://github.com/BallbeIan/SmartWallet/releases/latest)** and follow [Installing](#installing).
 
-<img src="docs/images/hero.png" alt="SmartWallet's home screen with the total balance, quick actions and budget, next to the History and Budgets screens" width="760">
-
-<table>
-  <tr>
-    <td><img src="docs/images/store/01-home.png" width="170" alt="One total across all accounts"></td>
-    <td><img src="docs/images/store/02-budgets.png" width="170" alt="Budgets that warn you"></td>
-    <td><img src="docs/images/store/03-history.png" width="170" alt="History"></td>
-    <td><img src="docs/images/store/04-reports.png" width="170" alt="Reports"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/store/05-scheduled.png" width="170" alt="Scheduled payments"></td>
-    <td><img src="docs/images/store/06-add.png" width="170" alt="Add a transaction"></td>
-    <td><img src="docs/images/store/07-accounts.png" width="170" alt="Accounts"></td>
-    <td><img src="docs/images/store/08-dark.png" width="170" alt="Dark theme"></td>
-  </tr>
-</table>
+<img src="docs/images/hero.png" alt="Expense Tracker - SmartWallet: budgets, accounts and scheduled bills, with the home and budgets screens" width="760">
 
 </div>
 
@@ -55,24 +40,18 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 
 <table>
   <tr>
-    <td><img src="docs/images/home.png" width="230" alt="Home"></td>
-    <td><img src="docs/images/home-scrolled.png" width="230" alt="Budget and recent transactions"></td>
-    <td><img src="docs/images/history.png" width="230" alt="History with the month's totals and carried-over amount"></td>
+    <td><img src="docs/images/01-home.png" width="230" alt="One total across all accounts"></td>
+    <td><img src="docs/images/02-budgets.png" width="230" alt="Budgets that warn you"></td>
+    <td><img src="docs/images/03-history.png" width="230" alt="History"></td>
   </tr>
   <tr>
-    <td><img src="docs/images/budgets.png" width="230" alt="Budgets"></td>
-    <td><img src="docs/images/reports.png" width="230" alt="Reports"></td>
-    <td><img src="docs/images/accounts.png" width="230" alt="Accounts"></td>
+    <td><img src="docs/images/04-reports.png" width="230" alt="Reports"></td>
+    <td><img src="docs/images/05-scheduled.png" width="230" alt="Scheduled payments"></td>
+    <td><img src="docs/images/06-add.png" width="230" alt="Adding a transaction"></td>
   </tr>
   <tr>
-    <td><img src="docs/images/add-expense.png" width="230" alt="Adding an expense in a sheet"></td>
-    <td><img src="docs/images/scheduled.png" width="230" alt="Scheduled payments"></td>
-    <td><img src="docs/images/month-end.png" width="230" alt="Month end settings"></td>
-  </tr>
-  <tr>
-    <td><img src="docs/images/home-dark.png" width="230" alt="Home in the dark theme"></td>
-    <td><img src="docs/images/history-dark.png" width="230" alt="History in the dark theme"></td>
-    <td><img src="docs/images/add-expense-dark.png" width="230" alt="The add sheet in the dark theme"></td>
+    <td><img src="docs/images/07-accounts.png" width="230" alt="Accounts"></td>
+    <td><img src="docs/images/08-dark.png" width="230" alt="Dark theme"></td>
   </tr>
 </table>
 
