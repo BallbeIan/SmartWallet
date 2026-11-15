@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/images/icon.png" alt="SmartWallet icon" width="112">
+<img src="docs/images/icon.png" alt="Expense Tracker - SmartWallet icon" width="112">
 
-# SmartWallet
+# Expense Tracker - SmartWallet
 
 **A private expense tracker for Android.**
 Keep all your accounts in one place, log what you spend, set monthly budgets, schedule subscriptions, and let the app deal with what's left over when a month ends.
@@ -18,6 +18,21 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 **[Download the latest APK](https://github.com/BallbeIan/SmartWallet/releases/latest)** and follow [Installing](#installing).
 
 <img src="docs/images/hero.png" alt="SmartWallet's home screen with the total balance, quick actions and budget, next to the History and Budgets screens" width="760">
+
+<table>
+  <tr>
+    <td><img src="docs/images/store/01-home.png" width="170" alt="One total across all accounts"></td>
+    <td><img src="docs/images/store/02-budgets.png" width="170" alt="Budgets that warn you"></td>
+    <td><img src="docs/images/store/03-history.png" width="170" alt="History"></td>
+    <td><img src="docs/images/store/04-reports.png" width="170" alt="Reports"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/store/05-scheduled.png" width="170" alt="Scheduled payments"></td>
+    <td><img src="docs/images/store/06-add.png" width="170" alt="Add a transaction"></td>
+    <td><img src="docs/images/store/07-accounts.png" width="170" alt="Accounts"></td>
+    <td><img src="docs/images/store/08-dark.png" width="170" alt="Dark theme"></td>
+  </tr>
+</table>
 
 </div>
 
@@ -89,7 +104,7 @@ Choose the account you spend from, then decide what happens when a month is over
 ## Installing
 
 1. On your phone, open the [latest release](https://github.com/BallbeIan/SmartWallet/releases/latest) and download `SmartWallet-<version>.apk`. Open it and allow your browser or file manager to install apps when Android asks.
-2. Open **SmartWallet**, add your first account with the **+** button, and start logging.
+2. Open **Expense Tracker - SmartWallet**, add your first account with the **+** button, and start logging.
 3. *(Optional)* In Settings, switch on **Payment reminders** to get a notification before a scheduled payment is due.
 
 To check the download, compare its SHA-256 with the `.sha256` file on the release page. The APK is signed with the project's release key, whose certificate SHA-256 is `d0e9851f05844377b84f1f31efe98aca5c2f06b37a5cf9bec6415c276894bf30` (check it with `apksigner verify --print-certs`). Updates install over an existing install and keep your data.
