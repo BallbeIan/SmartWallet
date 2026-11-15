@@ -4,8 +4,8 @@
 
 # Expense Tracker - SmartWallet
 
-**A private expense tracker for Android.**
-Keep all your accounts in one place, log what you spend, set monthly budgets, schedule subscriptions, and let the app deal with what's left over when a month ends.
+**The private expense tracker for Android.**
+All your money in one total, budgets that warn you, and bills that log themselves. It works fully offline, with no account, no ads and no internet permission.
 
 ![Android 8.0+](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-100%25-7F52FF?logo=kotlin&logoColor=white)
@@ -25,15 +25,16 @@ Keep all your accounts in one place, log what you spend, set monthly budgets, sc
 
 ## Highlights
 
-- **The Clarity design.** Big titles, rounded grouped lists, forms that slide up as sheets, a flat tab bar and green switches, in a light and a dark theme that can follow your phone.
-- **One total, any account.** The home screen shows the total across every account. Tap an account to look at just that one: its balance, its month, its recent activity.
-- **Fast logging.** Expense, Income and Transfer are one tap away, with categories, dates and notes. The dialogs fit on one screen and never open the keyboard until you ask.
+- **All your money, one total.** The home screen shows the total across every account. Tap an account to look at just that one: its balance, its month, its recent activity.
 - **Budgets that warn you.** Set a monthly limit per category and watch the bar turn amber, then red.
-- **Scheduled payments and transfers.** Add Netflix, rent, a salary or a monthly transfer to savings once (weekly, monthly or yearly), on a day of the month you choose. Each occurrence lands in History on its due date, and a reminder can tell you a day or two before.
+- **Every payment, at a glance.** History shows a month at a time, grouped by day, with an In / Out / Carried / Net summary and a filter per account.
+- **See where it all goes.** Spending by category as a donut chart, plus income against expenses for the last six months.
+- **Bills that log themselves.** Add Netflix, rent, a salary or a monthly transfer to savings once (weekly, monthly or yearly), on a day of the month you choose. Each occurrence lands in History on its due date, and a reminder can tell you a day or two before.
+- **Log it in two taps.** Expense, Income and Transfer are one tap away, with categories, dates and notes. The dialogs fit on one screen and never open the keyboard until you ask.
 - **Month end, your way.** Pick the account you spend from. When a month is over, leave the leftover in place, move it to another account, or cover an overspend from savings. Anything that stays is shown as a *Carried over* entry, and it is recalculated for every month whenever you edit the past.
 - **Private by design.** The app **never asks for the internet permission**. Your data lives in a local database on the phone, and there is no account, no analytics and no ads.
 - **App lock.** Optionally protect the app with a PIN and your fingerprint or face. It locks when you leave, hides its preview in the recent-apps list, and slows down guessing.
-- **Dark, light or automatic.** Pick a theme in Settings, or follow your phone.
+- **Easy on the eyes.** Pick a light or dark theme in Settings, or follow your phone. The Clarity design uses big titles, rounded grouped lists, forms that slide up as sheets, a flat tab bar and green switches.
 - **Your currency.** Pick any currency; amounts are shown with its symbol and formatting.
 
 ## Screenshots
