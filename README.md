@@ -15,9 +15,9 @@ All your money in one total, budgets that warn you, and bills that log themselve
 
 [![Download the latest APK](https://img.shields.io/github/v/release/BallbeIan/SmartWallet?label=download%20APK&logo=android&logoColor=white&color=3DDC84)](https://github.com/BallbeIan/SmartWallet/releases/latest)
 
-**[Download the latest APK](https://github.com/BallbeIan/SmartWallet/releases/latest)** and follow [Installing](#installing).
+**[Download the latest APK](https://github.com/BallbeIan/SmartWallet/releases/latest)** and follow [Installing](#installing). A Google Play release is planned.
 
-<img src="docs/images/hero.png" alt="Expense Tracker - SmartWallet: budgets, accounts and scheduled bills, with the home and budgets screens" width="760">
+<img src="docs/images/feature-graphic.png" alt="Expense Tracker - SmartWallet: budgets, accounts and scheduled bills, with the home and budgets screens" width="760">
 
 </div>
 
@@ -41,18 +41,18 @@ All your money in one total, budgets that warn you, and bills that log themselve
 
 <table>
   <tr>
-    <td><img src="docs/images/01-home.png" width="230" alt="One total across all accounts"></td>
-    <td><img src="docs/images/02-budgets.png" width="230" alt="Budgets that warn you"></td>
-    <td><img src="docs/images/03-history.png" width="230" alt="History"></td>
+    <td><img src="docs/images/screenshots/01-home.png" width="230" alt="One total across all accounts"></td>
+    <td><img src="docs/images/screenshots/02-budgets.png" width="230" alt="Budgets that warn you"></td>
+    <td><img src="docs/images/screenshots/03-history.png" width="230" alt="History"></td>
   </tr>
   <tr>
-    <td><img src="docs/images/04-reports.png" width="230" alt="Reports"></td>
-    <td><img src="docs/images/05-scheduled.png" width="230" alt="Scheduled payments"></td>
-    <td><img src="docs/images/06-add.png" width="230" alt="Adding a transaction"></td>
+    <td><img src="docs/images/screenshots/04-reports.png" width="230" alt="Reports"></td>
+    <td><img src="docs/images/screenshots/05-scheduled.png" width="230" alt="Scheduled payments"></td>
+    <td><img src="docs/images/screenshots/06-add.png" width="230" alt="Adding a transaction"></td>
   </tr>
   <tr>
-    <td><img src="docs/images/07-accounts.png" width="230" alt="Accounts"></td>
-    <td><img src="docs/images/08-dark.png" width="230" alt="Dark theme"></td>
+    <td><img src="docs/images/screenshots/07-accounts.png" width="230" alt="Accounts"></td>
+    <td><img src="docs/images/screenshots/08-dark.png" width="230" alt="Dark theme"></td>
   </tr>
 </table>
 
@@ -88,6 +88,8 @@ Choose the account you spend from, then decide what happens when a month is over
 3. *(Optional)* In Settings, switch on **Payment reminders** to get a notification before a scheduled payment is due.
 
 To check the download, compare its SHA-256 with the `.sha256` file on the release page. The APK is signed with the project's release key, whose certificate SHA-256 is `d0e9851f05844377b84f1f31efe98aca5c2f06b37a5cf9bec6415c276894bf30` (check it with `apksigner verify --print-certs`). Updates install over an existing install and keep your data.
+
+Once SmartWallet is on Google Play, the Play version and this APK are signed differently and cannot update each other. To switch, export your data in Settings, uninstall, install the other version and import it.
 
 ## Requirements and compatibility
 
@@ -134,14 +136,16 @@ There is **no internet permission**. See the merged list with `aapt2 dump permis
 
 You need JDK 17 and the Android SDK (platform 36, build-tools 36.0.0).
 
-```bash
+```powershell
 git clone https://github.com/BallbeIan/SmartWallet.git
 cd SmartWallet
-export ANDROID_HOME=~/Android/Sdk
-./gradlew assembleDebug        # app/build/outputs/apk/debug/app-debug.apk
-./gradlew installDebug         # onto a connected phone
-./gradlew lint
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+.\gradlew.bat assembleDebug    # app\build\outputs\apk\debug\app-debug.apk
+.\gradlew.bat installDebug     # onto a connected phone
+.\gradlew.bat lint
 ```
+
+On macOS or Linux, use `export ANDROID_HOME=~/Android/Sdk` and `./gradlew` instead.
 
 Or open the folder in Android Studio and run it on a device.
 
@@ -151,8 +155,8 @@ Release builds are signed with the key in `keystore.properties` (copy `keystore.
 
 Debug builds have a **Developer** section in Settings with *Load demo data* and *Clear all data*. To see the app filled in without touching your own data, install the separate `demo` build, which has its own database, and start it with the sample data:
 
-```bash
-./gradlew installDemo
+```powershell
+.\gradlew.bat installDemo
 adb shell am start -n app.smartwallet.expensetracker.demo/app.smartwallet.MainActivity --ez demo true
 ```
 

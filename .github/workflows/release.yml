@@ -1,0 +1,117 @@
+name: Release
+
+# Publishes a signed APK to GitHub Releases when a version tag is pushed:
+#   git tag v2.8 && git push origin v2.8
+# The tag must match versionName in app/build.gradle.kts (v2.8 <-> "2.8").
+# Needs four repository secrets: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.ref_name }}
+      APP: SmartWallet
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check the tag matches the app version
+        run: |
+          version=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          if [ "v$version" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match versionName \"$version\" in app/build.gradle.kts"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Check the signing secrets are set
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_BASE64 KEYSTORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Repository secret $name is not set, so the APK cannot be signed."
+              exit 1
+            fi
+          done
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Write the signing config
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/upload.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Lint and build the release APK
+        run: ./gradlew --no-daemon lint assembleRelease
+
+      - name: Verify the APK is signed with the release key
+        run: |
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          certs=$("$apksigner" verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk)
+          echo "$certs" | grep -E "Verifies|Signer #1 certificate DN"
+          if echo "$certs" | grep -qi "Android Debug"; then
+            echo "::error::The APK is signed with the debug key, refusing to publish it."
+            exit 1
+          fi
+
+      - name: Name the APK and write its checksum
+        run: |
+          mkdir dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/$APP-$VERSION.apk"
+          (cd dist && sha256sum "$APP-$VERSION.apk" > "$APP-$VERSION.apk.sha256")
+          cat "dist/$APP-$VERSION.apk.sha256"
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(cut -d' ' -f1 "dist/$APP-$VERSION.apk.sha256")
+          cat > notes.md <<NOTES
+          ## Install
+
+          1. Download **\`$APP-$VERSION.apk\`** below on your Android phone (Android 8.0 or newer) and open it.
+          2. Open **Expense Tracker - SmartWallet**, add your first account with the **+** button, and start logging.
+
+          Full steps are in the [README](https://github.com/${GITHUB_REPOSITORY}#installing). Updates install over an existing install and keep your data. This APK is signed with SmartWallet's own key: if you also use the Google Play version, export your data, uninstall one and import it into the other.
+
+          SHA-256 of \`$APP-$VERSION.apk\`:
+
+          \`\`\`
+          $sha
+          \`\`\`
+          NOTES
+          flags=""
+          case "$VERSION" in *-*) flags="--prerelease" ;; esac
+          gh release create "$TAG" $flags --verify-tag --title "$APP $VERSION" \
+            --notes-file notes.md --generate-notes \
+            "dist/$APP-$VERSION.apk" "dist/$APP-$VERSION.apk.sha256"
