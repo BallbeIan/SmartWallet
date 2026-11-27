@@ -102,7 +102,7 @@ jobs:
           1. Download **\`$APP-$VERSION.apk\`** below on your Android phone (Android 8.0 or newer) and open it.
           2. Open **Expense Tracker - SmartWallet**, add your first account with the **+** button, and start logging.
 
-          Full steps are in the [README](https://github.com/${GITHUB_REPOSITORY}#installing). Updates install over an existing install and keep your data. This APK is signed with SmartWallet's own key: if you also use the Google Play version, export your data, uninstall one and import it into the other.
+          Full steps are in the [README](https://github.com/${GITHUB_REPOSITORY}#install). Updates install over an existing install and keep your data. This APK is signed with SmartWallet's own key: if you also use the Google Play version, export your data, uninstall one and import it into the other.
 
           SHA-256 of \`$APP-$VERSION.apk\`:
 
